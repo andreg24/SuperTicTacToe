@@ -199,9 +199,10 @@ class raw_env(AECEnv, EzPickle):
             self.screen = pygame.Surface((self.board_size, self.board_size))
 
     def close(self):
-        if self.screen is not None:
-            pygame.quit()
-            self.screen = None
+      pass
+        # if self.screen is not None:
+        #     pygame.quit()
+        #     self.screen = None
 
     def render(self):
         if self.render_mode is None:
