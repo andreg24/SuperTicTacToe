@@ -46,7 +46,7 @@ def train(env: ultimatetictactoe.env, model, n_iters, n_episodes):
 
 
 if __name__ == "__main__":
-	env = ultimatetictactoe.env(render_mode="human")
+	env = ultimatetictactoe.env(render_mode="tui")
 	model = MLP(torch.device("cpu"))
 	train(env, model, 1, 1)
 
