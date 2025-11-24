@@ -7,12 +7,16 @@ import numpy as np
 import pygame
 from gymnasium import spaces
 from gymnasium.utils import EzPickle
-import torch
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import AgentSelector, wrappers
 
-DEFAULT_BOARD_SIZE = 500
+from utils.board import (
+    UltimateTicTacToeBoard,
+    Status
+)
+from utils.board_utils import relative_to_absolute
+from utils.render_utils import get_image, get_font
 
 BOARD_IMG = "board.jpg"
 CROSS_IMG = "cross.jpg"
@@ -47,16 +51,14 @@ class raw_env(AECEnv, EzPickle):
         "render_fps": 2,
     }
 
-    def __init__(self, render_mode: str | None = None, num_envs: int = 1, board_size: int | None = None):
+    def __init__(self, render_mode: str | None = None, board_size: int | None = None):
         EzPickle.__init__(
             self,
             render_mode,
-            board_size if board_size is not None else DEFAULT_BOARD_SIZE,
         )
         super().__init__()
 
-        self.num_envs = num_envs
-        self.board = torch.zeros((self.num_envs, 9, 9))
+        self.board = UltimateTicTacToeBoard()
 
         # ---agents---
         self.agents = ["player_1", "player_2"]
@@ -70,7 +72,7 @@ class raw_env(AECEnv, EzPickle):
             a: spaces.Dict(
                 {
                     "observation": spaces.Box(
-                        low=0, high=1, shape=(self.num_envs, 2, 9, 9), dtype=np.int8
+                        low=0, high=1, shape=(2, 9, 9), dtype=np.int8
                     ),
                     "action_mask": spaces.Box(
                         low=0, high=1, shape=(81,), dtype=np.int8
@@ -90,7 +92,6 @@ class raw_env(AECEnv, EzPickle):
         # ---rendering--
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
-        self.board_size = board_size if board_size is not None else DEFAULT_BOARD_SIZE
         self.screen = None
 
         # other render related things TO DO

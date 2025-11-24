@@ -3,8 +3,9 @@ from PIL import Image
 
 import ultimatetictactoe.ultimatetictactoe
 
+
 def gif_from_simulation(path_name, duration):
-    
+
     env = ultimatetictactoe.env(render_mode="rgb_array")
     env.reset(42)
 
@@ -25,6 +26,9 @@ def gif_from_simulation(path_name, duration):
     imgs_np.append(env.render())
     numpy_to_gif(imgs_np, path_name, duration)
 
+
 def numpy_to_gif(imgs_np, path_name, duration=200):
     imgs = [Image.fromarray(img_np) for img_np in imgs_np]
-    imgs[0].save(path_name, save_all=True, append_images=imgs[1:], duration=duration, loop=0)
+    imgs[0].save(
+        path_name, save_all=True, append_images=imgs[1:], duration=duration, loop=0
+    )
