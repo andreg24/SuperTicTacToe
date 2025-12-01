@@ -9,6 +9,7 @@ PERSPECTIVE_OPPONENT = -1
 def get_actions_value_prediction(env, model):
 	# priors = np.ones(env.action_space(env.agent_selection).n)
 	priors, value = model.predict(get_board_perspective(env, PERSPECTIVE_SELF))
+	print(f"model says priors = {priors}, value = {value}")
 	valid_moves = env.action_mask(env.agent_selection)
 	priors *= valid_moves
 	priors /= np.sum(priors)
