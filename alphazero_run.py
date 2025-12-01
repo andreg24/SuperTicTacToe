@@ -93,7 +93,7 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 
 
 if __name__ == "__main__":
-	env = ultimatetictactoe.env(render_mode=None)
+	env = ultimatetictactoe.env(render_mode="tui")
 	model = MLP(torch.device("cpu"))
 	train(env, model, 1, 1)
 
