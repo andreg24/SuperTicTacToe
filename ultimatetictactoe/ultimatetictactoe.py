@@ -169,12 +169,18 @@ class raw_env(AECEnv, EzPickle):
         if self.render_mode in ["human", "tui"]:
             self.render()
 
-    def reset(self, seed=None, options=None):
-        self.board = UltimateTicTacToeBoard()
+    def reset(self, seed=None, options={}):
+        if options and "board" in options and options["board"]:
+            self.board = options["board"].copy()
+        else:
+            self.board = UltimateTicTacToeBoard()
 
         self.agents = self.possible_agents[:]
         self._agent_selector.reinit(self.agents)
         self.agent_selection = self._agent_selector.reset()
+        if options and "next_player" in options and options["next_player"] != 1:
+            self.agent_selection = self._agent_selector.next()
+            self.board.current_player = self.agents.index(self.agent_selection)
 
         self.rewards = {name: 0 for name in self.agents}
         self._cumulative_rewards = {name: 0 for name in self.agents}

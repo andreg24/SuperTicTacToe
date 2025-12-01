@@ -6,15 +6,15 @@ from .utils import _ucb, get_board_perspective
 PERSPECTIVE_SELF = 1
 PERSPECTIVE_OPPONENT = -1
 
-def get_actions_value_prediction(env):
-	# This will be replaced with policy and value networks.
-	priors = np.ones(env.action_space(env.agent_selection).n)
+def get_actions_value_prediction(env, model):
+	# priors = np.ones(env.action_space(env.agent_selection).n)
+	priors, value = model.predict(get_board_perspective(env, PERSPECTIVE_SELF))
 	valid_moves = env.action_mask(env.agent_selection)
 	priors *= valid_moves
 	priors /= np.sum(priors)
 	return {
 		i: p for i, p in enumerate(priors)
-	}, 0.5
+	}, value
 
 
 class Node:
@@ -29,7 +29,7 @@ class Node:
 
 		self.C = C
 
-	def expanded(self):
+	def has_children(self):
 		return len(self.children) > 0
 
 	def value(self):
@@ -69,13 +69,11 @@ class MCTS:
 			next_player=current_player,
 			state=get_board_perspective(self.env, PERSPECTIVE_SELF)
 		)
-		priors, value = get_actions_value_prediction(self.env)
+		priors, value = get_actions_value_prediction(self.env, model)
 		root.expand(current_player * -1, priors)
 
 		for _ in range(self.n_searches):
-			self.env.reset()
-			if board:
-				self.env.board = board
+			self.env.reset(options=dict(board=board, next_player=current_player))
 
 			# Start each search iteration from the root node and initialize
 			# the traversal path with it.
@@ -84,18 +82,18 @@ class MCTS:
 			# Traverse the tree until a leaf node is reached. For each non-leaf
 			# node encountered, continue traversing the tree by selecting
 			# one of its children according to their UCB score.
-			while node.expanded():
+			while node.has_children():
 				action, node, _ = node.select()
-				if not node.expanded():
-					print(f"playing action {action} as {self.env.agent_selection}")
+				# if not node.expanded():
+				# 	print(f"playing action {action} as {self.env.agent_selection}")
 				self.env.step(action)
 
 			observation, reward, termination, truncation, info = self.env.last()
 
-			reward_for_next = -reward
+			value = -reward
 			state_for_next = get_board_perspective(self.env, PERSPECTIVE_OPPONENT)
-			if reward_for_next == 0:
-				priors, value = get_actions_value_prediction(self.env)
+			if value == 0:
+				priors, value = get_actions_value_prediction(self.env, model)
 				node.state = state_for_next
 				node.expand(node.next_player * -1, priors)
 
