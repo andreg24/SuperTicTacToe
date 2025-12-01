@@ -30,7 +30,7 @@ def episode(env: ultimatetictactoe.env, model):
 		observation, reward, termination, truncation, info = env.last()
 		reward = -reward
 
-		if reward != 0:
+		if reward != 0 or termination:
 			# print(f"Reward! Player {current_player} has won!")
 			return [(
 				hist_state,
