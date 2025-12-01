@@ -92,7 +92,7 @@ class MCTS:
 
 			value = -reward
 			state_for_next = get_board_perspective(self.env, PERSPECTIVE_OPPONENT)
-			if value == 0:
+			if value == 0 and not termination:
 				priors, value = get_actions_value_prediction(self.env, model)
 				node.state = state_for_next
 				node.expand(node.next_player * -1, priors)
