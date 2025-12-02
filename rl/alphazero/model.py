@@ -37,3 +37,23 @@ class MLP(nn.Module):
 			pi, v = self.forward(board)
 
 		return pi.data.cpu().numpy()[0], v.data.cpu().numpy()[0]
+
+
+class ResNet(nn.Module):
+	def __init__(self, device, board_size=81, action_size=81):
+		super(ResNet, self).__init__()
+
+
+class ResBlock(nn.Module):
+	def __init__(self, n_hidden):
+		super(ResBlock, self).__init__()
+		self.conv1 = nn.Conv2d(n_hidden, n_hidden, kernel_size=3, padding=1)
+		self.bn1 = nn.BatchNorm2d(n_hidden)
+		self.conv2 = nn.Conv2d(n_hidden, n_hidden, kernel_size=3, padding=1)
+		self.bn2 = nn.BatchNorm2d(n_hidden)
+
+	def forward(self, x):
+		residual = x
+		x = F.relu(self.bn1(self.conv1(x)))
+		x = F.relu(self.bn2(self.conv2(x)) + residual)
+		return x

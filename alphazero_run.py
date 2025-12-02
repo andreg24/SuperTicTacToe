@@ -1,3 +1,4 @@
+import argparse
 import random
 import numpy as np
 import torch
@@ -42,7 +43,7 @@ def episode(env: ultimatetictactoe.env, model):
 		board = env.board
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
-def train(env: ultimatetictactoe.env, model, n_iters, n_episodes):
+def train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batch_size):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
@@ -53,7 +54,7 @@ def train(env: ultimatetictactoe.env, model, n_iters, n_episodes):
 		
 		random.shuffle(samples)
 		print("All episodes executed. Training...")
-		train_model(model, samples)
+		train_model(model, samples, n_epochs, batch_size)
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
 	optimizer = optim.Adam(model.parameters(), lr=5e-4)
@@ -93,14 +94,23 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 
 
 if __name__ == "__main__":
-	env = ultimatetictactoe.env(render_mode=None)
-	model = MLP(torch.device("cpu"))
-	train(env, model, 1, 1)
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--model", action="store", default="mlp", choices=["mlp"])
+	parser.add_argument("--n_iters", "-i", action="store", type=int, required=True)
+	parser.add_argument("--n_episodes", "-s", action="store", type=int, required=True)
+	parser.add_argument("--n_epochs", "-e", action="store", type=int, required=True)
+	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
+	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None, )
+	parser.add_argument("--device", "-d", action="store", default="cpu")
+	args = parser.parse_args()
 
-# if __name__ == "__main__":
-# 	from rl.alphazero.mcts import MCTS
-# 	from ultimatetictactoe import ultimatetictactoe as ttt
-
-# 	env = ttt.env(render_mode=None)
-# 	mcts = MCTS(env, n_searches=2048)
-# 	mcts.run(model=None)
+	env = ultimatetictactoe.env(render_mode=args.render)
+	model = MLP(torch.device(args.device))
+	train(
+		env=env,
+		model=model,
+		n_iters=args.n_iters,
+		n_episodes=args.n_episodes,
+		n_epochs=args.n_epochs,
+		batch_size=args.batch
+	)
