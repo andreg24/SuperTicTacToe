@@ -55,13 +55,15 @@ def train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batc
 		random.shuffle(samples)
 		print("All episodes executed. Training...")
 		train_model(model, samples, n_epochs, batch_size)
+		print()
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
 	optimizer = optim.Adam(model.parameters(), lr=5e-4)
 	losses_pi = []
 	losses_v = []
 
-	for epoch in range(n_epochs):
+	for epoch in range(1, n_epochs + 1):
+		print(f"Epoch {epoch}/{n_epochs}")
 		model.train()
 
 		batch_idx = 0
