@@ -1,5 +1,6 @@
 import argparse
 import random
+import os
 import numpy as np
 import torch
 import torch.optim as optim
@@ -104,6 +105,7 @@ if __name__ == "__main__":
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
 	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None, )
 	parser.add_argument("--device", "-d", action="store", default="cpu")
+	parser.add_argument("--checkpoint", "-c", action="store", default="local/latest.pth")
 	args = parser.parse_args()
 
 	env = ultimatetictactoe.env(render_mode=args.render)
@@ -116,3 +118,6 @@ if __name__ == "__main__":
 		n_epochs=args.n_epochs,
 		batch_size=args.batch
 	)
+	torch.save({
+		"state_dict": model.state_dict()
+	}, args.checkpoint)
