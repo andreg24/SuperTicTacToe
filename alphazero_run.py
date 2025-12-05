@@ -1,6 +1,7 @@
 import argparse
 import random
 import os
+import sys
 import numpy as np
 import torch
 import torch.optim as optim
@@ -44,7 +45,7 @@ def episode(env: ultimatetictactoe.env, model):
 		board = env.board
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
-def train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batch_size):
+def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batch_size):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
@@ -57,6 +58,44 @@ def train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batc
 		print("All episodes executed. Training...")
 		train_model(model, samples, n_epochs, batch_size)
 		print()
+
+def _eval(env: ultimatetictactoe.env, model):
+	model.eval()
+
+	mcts = MCTS(env, n_searches=400)
+	current_player = 1
+	board = None
+
+	while True:
+		if current_player == 1:
+			action = env.action_space(env.agent_selection).sample(
+				env.action_mask(env.agent_selection)
+			)
+			# print(f"Player {current_player} (random) playing action {action}")
+		else:
+			state = get_board_perspective(env, current_player)
+			root, action_probs = mcts.run(model, current_player, board)
+			action = np.argmax(action_probs)
+			# print(f"Player {current_player} (model) playing action {action}")
+
+		env.reset(options={
+			"board": board,
+			"next_player": current_player
+		})
+		env.step(action)
+		observation, reward, termination, truncation, info = env.last()
+
+		if termination:
+			if reward > 0:
+				print(f"Player {current_player} has won!")
+			elif reward < 0:
+				print(f"Player {current_player} has lost!")
+			else:
+				print("It's a tie!")
+			return
+		
+		current_player *= -1
+		board = env.board
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
 	optimizer = optim.Adam(model.parameters(), lr=5e-4)
@@ -98,26 +137,39 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
+	parser.add_argument("--train", action="store_true", default=False)
+	parser.add_argument("--eval", action="store_true", default=False)
 	parser.add_argument("--model", action="store", default="mlp", choices=["mlp"])
-	parser.add_argument("--n_iters", "-i", action="store", type=int, required=True)
-	parser.add_argument("--n_episodes", "-s", action="store", type=int, required=True)
-	parser.add_argument("--n_epochs", "-e", action="store", type=int, required=True)
+	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
+	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
+	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
-	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None, )
+	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None)
 	parser.add_argument("--device", "-d", action="store", default="cpu")
 	parser.add_argument("--checkpoint", "-c", action="store", default="local/latest.pth")
 	args = parser.parse_args()
 
+	if args.train and args.eval:
+		sys.exit("Train or eval?")
+	if args.train and (
+		not args.n_iters or
+		not args.n_episodes or
+		not args.n_epochs
+	):
+		sys.exit("Training requires --n_iters, --n_episodes and --n_epochs to be specified.")
+
 	env = ultimatetictactoe.env(render_mode=args.render)
 	model = MLP(torch.device(args.device))
-	train(
-		env=env,
-		model=model,
-		n_iters=args.n_iters,
-		n_episodes=args.n_episodes,
-		n_epochs=args.n_epochs,
-		batch_size=args.batch
-	)
-	torch.save({
-		"state_dict": model.state_dict()
-	}, args.checkpoint)
+	if args.train:
+		_train(
+			env=env,
+			model=model,
+			n_iters=args.n_iters,
+			n_episodes=args.n_episodes,
+			n_epochs=args.n_epochs,
+			batch_size=args.batch
+		)
+		torch.save(model.state_dict(), args.checkpoint)
+	elif args.eval:
+		model.load_state_dict(torch.load(args.checkpoint, weights_only=True)["state_dict"])
+		_eval(env, model)
