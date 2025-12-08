@@ -122,6 +122,7 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 			loss_pi = -(t_pi * torch.log(p_pi)).sum(dim=1).mean()
 			loss_v = torch.sum((t_v - p_v.view(-1)) ** 2) / t_v.size()[0]
 			loss_total = loss_pi + loss_v
+			print(f"p_pi = {p_pi} | p_v = {p_v} | loss_pi = {loss_pi} | loss_v = {loss_v}")
 			losses_pi.append(loss_pi.detach().numpy())
 			losses_v.append(loss_v.detach().numpy())
 
