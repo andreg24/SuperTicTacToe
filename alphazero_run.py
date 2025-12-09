@@ -172,5 +172,5 @@ if __name__ == "__main__":
 		)
 		torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
-		model.load_state_dict(torch.load(args.checkpoint, weights_only=True)["state_dict"])
+		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
 		_eval(env, model)
