@@ -92,7 +92,7 @@ def _eval(env: ultimatetictactoe.env, model):
 				print(f"Player {current_player} has lost!")
 			else:
 				print("It's a tie!")
-			return
+			return current_player * reward
 		
 		current_player *= -1
 		board = env.board
@@ -144,6 +144,7 @@ if __name__ == "__main__":
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
+	parser.add_argument("--n_matches", "-m", action="store", type=int, default=0)
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
 	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None)
 	parser.add_argument("--device", "-d", action="store", default="cpu")
@@ -158,6 +159,8 @@ if __name__ == "__main__":
 		not args.n_epochs
 	):
 		sys.exit("Training requires --n_iters, --n_episodes and --n_epochs to be specified.")
+	if args.eval and not args.n_matches:
+		sys.exit("Evaluation requires --n_matches to be specified.")
 
 	env = ultimatetictactoe.env(render_mode=args.render)
 	model = MLP(torch.device(args.device))
@@ -173,4 +176,9 @@ if __name__ == "__main__":
 		torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
-		_eval(env, model)
+		wins, total = 0, 0
+		for _ in range(args.n_matches):
+			if _eval(env, model) > 0:
+				wins += 1
+			total += 1
+		print(f"Stats: model won {wins} out of {total} matches ({wins / total}%)")
