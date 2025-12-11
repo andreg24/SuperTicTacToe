@@ -47,7 +47,12 @@ class raw_env(AECEnv, EzPickle):
         "render_fps": 2,
     }
 
-    def __init__(self, render_mode: str | None = None, num_envs: int = 1, board_size: int | None = None):
+    def __init__(
+        self,
+        render_mode: str | None = None, 
+        num_envs: int = 1, 
+        board_size: int | None = None
+    ):
         EzPickle.__init__(
             self,
             render_mode,
