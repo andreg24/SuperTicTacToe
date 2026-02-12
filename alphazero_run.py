@@ -65,11 +65,11 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, bat
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
-def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, batch_size):
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, batch_size, n_processes=1):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
-		with Pool(processes=8) as pool:
+		with Pool(processes=n_processes) as pool:
 			results = pool.starmap(episode_async, [(cloudpickle.dumps(env_fn), model) for _ in range(n_episodes)])
 		
 		samples = []
@@ -166,6 +166,7 @@ if __name__ == "__main__":
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
 	parser.add_argument("--n_matches", "-m", action="store", type=int, default=0)
+	parser.add_argument("--n_processes", "-p", action="store", type=int, default=1)
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
 	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None)
 	parser.add_argument("--device", "-d", action="store", default="cpu")
@@ -200,7 +201,8 @@ if __name__ == "__main__":
 			n_iters=args.n_iters,
 			n_episodes=args.n_episodes,
 			n_epochs=args.n_epochs,
-			batch_size=args.batch
+			batch_size=args.batch,
+			n_processes=args.n_processes
 		)
 		torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
