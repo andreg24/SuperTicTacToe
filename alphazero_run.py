@@ -9,7 +9,7 @@ import cloudpickle
 from multiprocessing import Pool
 
 from ultimatetictactoe import ultimatetictactoe
-from rl.alphazero.model import MLP
+from rl.alphazero.model import MLP, ResNet
 from rl.alphazero.mcts import MCTS
 from rl.alphazero.utils import get_board_perspective
 
@@ -185,7 +185,8 @@ if __name__ == "__main__":
 		sys.exit("Evaluation requires --n_matches to be specified.")
 
 	env = ultimatetictactoe.env(render_mode=args.render)
-	model = MLP(torch.device(args.device))
+	# model = MLP(torch.device(args.device))
+	model = ResNet(torch.device(args.device))
 	if args.train:
 		# _train(
 		# 	env=env,
