@@ -5,6 +5,8 @@ import sys
 import numpy as np
 import torch
 import torch.optim as optim
+import cloudpickle
+from multiprocessing import Pool
 
 from ultimatetictactoe import ultimatetictactoe
 from rl.alphazero.model import MLP
@@ -45,6 +47,10 @@ def episode(env: ultimatetictactoe.env, model):
 		board = env.board
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
+def episode_async(env_fn, model):
+	env = cloudpickle.loads(env_fn)()
+	return episode(env, model)
+
 def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batch_size):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
@@ -59,10 +65,25 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, bat
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, batch_size):
+	for i in range(1, n_iters + 1):
+		print(f"Iteration {i}/{n_iters}")
+
+		with Pool(processes=8) as pool:
+			results = pool.starmap(episode_async, [(cloudpickle.dumps(env_fn), model) for _ in range(n_episodes)])
+		
+		samples = []
+		for ep_samples in results:
+			samples.extend(ep_samples)
+		random.shuffle(samples)
+		print("All episodes executed. Training...")
+		train_model(model, samples, n_epochs, batch_size)
+		print()
+
 def _eval(env: ultimatetictactoe.env, model):
 	model.eval()
 
-	mcts = MCTS(env, n_searches=60)
+	mcts = MCTS(env, n_searches=64)
 	current_player = 1
 	board = None
 
@@ -165,8 +186,16 @@ if __name__ == "__main__":
 	env = ultimatetictactoe.env(render_mode=args.render)
 	model = MLP(torch.device(args.device))
 	if args.train:
-		_train(
-			env=env,
+		# _train(
+		# 	env=env,
+		# 	model=model,
+		# 	n_iters=args.n_iters,
+		# 	n_episodes=args.n_episodes,
+		# 	n_epochs=args.n_epochs,
+		# 	batch_size=args.batch
+		# )
+		_train_async(
+			env_fn=lambda: ultimatetictactoe.env(render_mode=args.render),
 			model=model,
 			n_iters=args.n_iters,
 			n_episodes=args.n_episodes,
