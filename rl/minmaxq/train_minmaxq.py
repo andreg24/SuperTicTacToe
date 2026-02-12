@@ -168,15 +168,15 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=5e-4)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--epsilon_start', type=float, default=1.0)
-    parser.add_argument('--epsilon_end', type=float, default=0.1)
-    parser.add_argument('--epsilon_decay', type=float, default=0.9999)
+    parser.add_argument('--epsilon_end', type=float, default=0.05)
+    parser.add_argument('--epsilon_decay', type=float, default=0.99995)
     parser.add_argument('--double_dqn', action='store_true', default=True)
     parser.add_argument('--no_double_dqn', action='store_false', dest='double_dqn')
     # Options
-    parser.add_argument('--enable_swap', action='store_true', default=True)
+    parser.add_argument('--enable_swap', action='store_true', default=False)  # Changed
+    parser.add_argument('--swap', action='store_true', dest='enable_swap')  # Add explicit flag
     parser.add_argument('--no_swap', action='store_false', dest='enable_swap')
-    parser.add_argument('--fixed_opponent', action='store_true', default=True,
-                       help='Train with fixed opponent (latest checkpoint)')
+    parser.add_argument('--fixed_opponent', action='store_true', default=False, help='Train with fixed opponent (latest checkpoint)')
     parser.add_argument('--fixed_phase_episodes', type=int, default=5000,
                        help='Episodes per fixed‑opponent phase')
     parser.add_argument('--pool_size', type=int, default=30,
