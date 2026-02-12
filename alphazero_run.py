@@ -14,11 +14,11 @@ from rl.alphazero.mcts import MCTS
 from rl.alphazero.utils import get_board_perspective
 
 
-def episode(env: ultimatetictactoe.env, model):
+def episode(env: ultimatetictactoe.env, model, n_searches):
 	samples = []
 	current_player = 1
 	board = None
-	mcts = MCTS(env, n_searches=400)
+	mcts = MCTS(env, n_searches=n_searches)
 
 	while True:
 		state = get_board_perspective(env, current_player)
@@ -47,30 +47,30 @@ def episode(env: ultimatetictactoe.env, model):
 		board = env.board
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
-def episode_async(env_fn, model):
+def episode_async(env_fn, model, n_searches):
 	env = cloudpickle.loads(env_fn)()
-	return episode(env, model)
+	return episode(env, model, n_searches)
 
-def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, batch_size):
+def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_searches, batch_size):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
 		samples = []
 		for j in range(1, n_episodes + 1):
 			print(f"Episode {j}/{n_episodes}")
-			samples.extend(episode(env, model))
+			samples.extend(episode(env, model, n_searches))
 		
 		random.shuffle(samples)
 		print("All episodes executed. Training...")
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
-def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, batch_size, n_processes=1):
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
 		with Pool(processes=n_processes) as pool:
-			results = pool.starmap(episode_async, [(cloudpickle.dumps(env_fn), model) for _ in range(n_episodes)])
+			results = pool.starmap(episode_async, [(cloudpickle.dumps(env_fn), model, n_searches) for _ in range(n_episodes)])
 		
 		samples = []
 		for ep_samples in results:
@@ -165,6 +165,7 @@ if __name__ == "__main__":
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
+	parser.add_argument("--n_searches", "-t", action="store", type=int, default=0)
 	parser.add_argument("--n_matches", "-m", action="store", type=int, default=0)
 	parser.add_argument("--n_processes", "-p", action="store", type=int, default=1)
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
@@ -178,9 +179,10 @@ if __name__ == "__main__":
 	if args.train and (
 		not args.n_iters or
 		not args.n_episodes or
-		not args.n_epochs
+		not args.n_epochs or
+		not args.n_searches
 	):
-		sys.exit("Training requires --n_iters, --n_episodes and --n_epochs to be specified.")
+		sys.exit("Training requires --n_iters, --n_episodes, --n_epochs and --n_searches to be specified.")
 	if args.eval and not args.n_matches:
 		sys.exit("Evaluation requires --n_matches to be specified.")
 
@@ -202,6 +204,7 @@ if __name__ == "__main__":
 			n_iters=args.n_iters,
 			n_episodes=args.n_episodes,
 			n_epochs=args.n_epochs,
+			n_searches=args.n_searches,
 			batch_size=args.batch,
 			n_processes=args.n_processes
 		)
