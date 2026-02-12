@@ -62,7 +62,7 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, bat
 def _eval(env: ultimatetictactoe.env, model):
 	model.eval()
 
-	mcts = MCTS(env, n_searches=400)
+	mcts = MCTS(env, n_searches=60)
 	current_player = 1
 	board = None
 

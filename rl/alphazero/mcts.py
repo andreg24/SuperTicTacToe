@@ -32,7 +32,7 @@ class Node:
 	def has_children(self):
 		return len(self.children) > 0
 
-	def value(self):
+	def get_value(self):
 		return self.value / self.count if self.count > 0 else 0
 
 	def select(self):
