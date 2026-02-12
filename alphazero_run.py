@@ -1,6 +1,8 @@
+import os
+os.environ["PYTHONWARNINGS"] = "ignore"
+
 import argparse
 import random
-import os
 import sys
 import numpy as np
 import torch
