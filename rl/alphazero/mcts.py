@@ -102,4 +102,5 @@ class MCTS:
 		action_probs = np.zeros(self.env.action_space(self.env.agent_selection).n)
 		for a, child in root.children.items():
 			action_probs[a] = child.count
-		return root, action_probs / np.sum(action_probs)
+		action_probs = action_probs / np.sum(action_probs) if np.sum(action_probs) else action_probs
+		return root, action_probs
