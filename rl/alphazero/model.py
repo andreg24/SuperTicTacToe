@@ -56,7 +56,7 @@ class ResNet(nn.Module):
 			nn.ReLU(),
 			nn.Flatten(),
 			nn.Linear(32 * board_rows * board_cols, action_size),
-			nn.Softmax()
+			nn.Softmax(dim=-1)
 		)
 		self.value_head = nn.Sequential(
 			nn.Conv2d(n_hidden, 3, kernel_size=3, padding=1),
@@ -70,7 +70,6 @@ class ResNet(nn.Module):
 
 	def forward(self, x):
 		x = x.reshape((-1, self.board_rows, self.board_cols))
-		# print(x.shape)
 		x = torch.stack([
 			(x == -1).to(torch.float32),
 			(x == 0).to(torch.float32),
