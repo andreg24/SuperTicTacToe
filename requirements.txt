@@ -1,0 +1,6 @@
+numpy
+pygame
+Pillow
+gymnasium
+pettingzoo
+tqdm

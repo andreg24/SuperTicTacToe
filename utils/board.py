@@ -243,6 +243,11 @@ class SubTicTacToeBoard:
         # 6 7 8
         self.cells = [0] * 9
 
+    def copy(self):
+      b = SubTicTacToeBoard()
+      b.cells = [c for c in self.cells]
+      return b
+
     @property
     def _n_empty_cells(self):
         """The current number of empty squares on the board."""
@@ -309,6 +314,15 @@ class UltimateTicTacToeBoard:
         self.sub_boards = [SubTicTacToeBoard() for _ in range(9)]
         self.current_pos = -1  # -1 indicates free choice
         self.current_player = 0
+
+    def copy(self):
+      b = UltimateTicTacToeBoard()
+      b.super_cells = [sc for sc in self.super_cells]
+      b.cells = [c for c in self.cells]
+      b.sub_boards = [c.copy() for c in self.sub_boards]
+      b.current_pos = self.current_pos
+      b.current_player = self.current_player
+      return b
 
     @property
     def _n_empty_super_cells(self):

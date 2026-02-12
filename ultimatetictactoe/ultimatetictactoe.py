@@ -12,6 +12,10 @@ import torch
 from pettingzoo import AECEnv
 from pettingzoo.utils import AgentSelector, wrappers
 
+from utils.board import UltimateTicTacToeBoard, Status, BoardTransformation, BoardRotation, BoardReflection
+from utils.board_utils import relative_to_absolute
+from utils.render_utils import get_image, get_font, render_tui
+
 DEFAULT_BOARD_SIZE = 500
 
 BOARD_IMG = "board.jpg"
@@ -41,7 +45,7 @@ def env(**kwargs):
 
 class raw_env(AECEnv, EzPickle):
     metadata = {
-        "render_modes": ["human", "rgb_array"],
+        "render_modes": ["human", "rgb_array", "tui"],
         "name": "supertictactoe_v0",
         "is_parallelizable": False,
         "render_fps": 2,
@@ -177,15 +181,21 @@ class raw_env(AECEnv, EzPickle):
         self.agent_selection = self._agent_selector.next()
         self.last_action = action
 
-        if self.render_mode == "human":
+        if self.render_mode in ["human", "tui"]:
             self.render()
 
-    def reset(self, seed=None, options=None):
-        self.board = UltimateTicTacToeBoard()
+    def reset(self, seed=None, options={}):
+        if options and "board" in options and options["board"]:
+            self.board = options["board"].copy()
+        else:
+            self.board = UltimateTicTacToeBoard()
 
         self.agents = self.possible_agents[:]
         self._agent_selector.reinit(self.agents)
         self.agent_selection = self._agent_selector.reset()
+        if options and "next_player" in options and options["next_player"] != 1:
+            self.agent_selection = self._agent_selector.next()
+            self.board.current_player = self.agents.index(self.agent_selection)
 
         self.rewards = {name: 0 for name in self.agents}
         self._cumulative_rewards = {name: 0 for name in self.agents}
@@ -221,79 +231,72 @@ class raw_env(AECEnv, EzPickle):
         # elif self.render_mode in {"human", "rgb_array"}:
         #     return self._render_gui()
 
-        # --- Setup ---
-        tile_size = self.board_size // 12
-        tile_size_big = self.board_size // 4
-
-        # --- Draw board background ---
-        board_img = get_image(os.path.join("img", "board.jpg"))
-        board_img = pygame.transform.scale(
-            board_img, (self.board_size, self.board_size)
-        )
-        self.screen.blit(board_img, (0, 0))
-
-        board_state = list(map(get_symbol, self.board.cells))
-        super_board_state = list(map(get_symbol, self.board.super_cells))
-
-        # --- Draw small marks (9x9) ---
-        mark_pos = 0
-        for x in range(9):
-            for y in range(9):
-                mark = board_state[mark_pos]
-                mark_pos += 1
-
-                if mark is None:
-                    continue
-
-                mark_img = get_image(os.path.join("img", mark + ".png"))
-                if self.last_action is not None and self.last_action == mark_pos - 1:
-                    pass
-                else:
-                    mark_img.set_alpha(100)
-
-                mark_img = pygame.transform.scale(mark_img, (tile_size, tile_size))
-
-                self.screen.blit(
-                    mark_img,
-                    (
-                        (self.board_size / 8.8) * y + (self.board_size / 190),
-                        (self.board_size / 8.8) * x + (self.board_size / 190),
-                    ),
-                )
-        # big symbols
-        mark_pos = 0
-        for x in range(3):
-            for y in range(3):
-                mark = super_board_state[mark_pos]
-                mark_pos += 1
-
-                if mark is None:
-                    continue
-
-                mark_img = get_image(os.path.join("img", mark + ".png"))
-                mark_img = pygame.transform.scale(
-                    mark_img, (tile_size_big, tile_size_big)
-                )
-
-                self.screen.blit(
-                    mark_img,
-                    (
-                        (self.board_size / 2.9) * y + (self.board_size / 30),
-                        (self.board_size / 2.9) * x + (self.board_size / 30),
-                    ),
-                )
-
         if self.render_mode == "human":
-            pygame.display.update()
-            self.clock.tick(self.metadata["render_fps"])
+          # --- Setup ---
+          tile_size = self.board_size // 12
+          tile_size_big = self.board_size // 4
 
-        observation = np.array(pygame.surfarray.pixels3d(self.screen))
+          # --- Draw board background ---
+          board_img = get_image(os.path.join("img", "board.jpg"))
+          board_img = pygame.transform.scale(board_img, (self.board_size, self.board_size))
+          self.screen.blit(board_img, (0, 0))
 
-        return (
-            np.transpose(observation, axes=(1, 0, 2))
-            if self.render_mode == "rgb_array"
-            else None
-        )
+          board_state = list(map(get_symbol, self.board.cells))
+          super_board_state = list(map(get_symbol, self.board.super_cells))
+
+          # --- Draw small marks (9x9) ---
+          mark_pos = 0
+          for x in range(9):
+              for y in range(9):
+                  mark = board_state[mark_pos]
+                  mark_pos += 1
+
+                  if mark is None:
+                      continue
+
+                  mark_img = get_image(os.path.join("img", mark + ".png"))
+                  if self.last_action is not None and self.last_action == mark_pos-1:
+                      pass
+                  else:
+                      mark_img.set_alpha(100)
+
+                  mark_img = pygame.transform.scale(mark_img, (tile_size, tile_size))
+
+                  self.screen.blit(
+                      mark_img,
+                      (
+                          (self.board_size / 8.8) * y + (self.board_size / 190),
+                          (self.board_size / 8.8) * x + (self.board_size / 190),
+                      ),
+                  )
+          # big symbols
+          mark_pos = 0
+          for x in range(3):
+              for y in range(3):
+                  mark = super_board_state[mark_pos]
+                  mark_pos += 1
+
+                  if mark is None:
+                      continue
+
+                  mark_img = get_image(os.path.join("img", mark + ".png"))
+                  mark_img = pygame.transform.scale(mark_img, (tile_size_big, tile_size_big))
+
+
+                  self.screen.blit(
+                      mark_img,
+                      (
+                          (self.board_size / 2.9) * y + (self.board_size / 30),
+                          (self.board_size / 2.9) * x + (self.board_size / 30),
+                      ),
+                  )
+          pygame.display.update()
+          self.clock.tick(self.metadata["render_fps"])
+        elif self.render_mode == "rgb_array":
+          observation = np.array(pygame.surfarray.pixels3d(self.screen))
+          return np.transpose(observation, axes=(1, 0, 2))
+        elif self.render_mode == "tui":
+          render_tui(self.board.cells)
 
     def apply_transformation(self, transformation: BoardTransformation):
         self.board.apply_transformation(transformation)
