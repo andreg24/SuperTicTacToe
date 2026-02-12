@@ -19,6 +19,12 @@ from SuperTicTacToe.ultimatetictactoe import ultimatetictactoe
 from agent import MinMaxQAgent
 from train import train_minmaxq, evaluate_vs_random
 
+from enhanced_train_metrics import (
+    enhanced_train_minmaxq, 
+    plot_enhanced_stats,
+    evaluate_detailed
+)
+
 
 def plot_training_stats(stats: dict, save_path: str = None):
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
@@ -121,7 +127,23 @@ def main(args):
 
     print(f"Agents created. Q-network parameters: {sum(p.numel() for p in agent1.q_network.parameters())}")
 
-    stats = train_minmaxq(
+    # stats = train_minmaxq(
+    #     env=env,
+    #     agent1=agent1,
+    #     agent2=agent2,
+    #     num_episodes=args.episodes,
+    #     batch_size=args.batch_size,
+    #     update_freq=args.update_freq,
+    #     target_update_freq=args.target_update_freq,
+    #     buffer_capacity=args.buffer_capacity,
+    #     enable_swap=args.enable_swap,
+    #     eval_freq=args.eval_freq,
+    #     eval_episodes=args.eval_episodes,
+    #     fixed_opponent=args.fixed_opponent,
+    #     fixed_phase_episodes=args.fixed_phase_episodes,
+    #     pool_size=args.pool_size,
+    # )
+    stats, tracker = enhanced_train_minmaxq(
         env=env,
         agent1=agent1,
         agent2=agent2,
@@ -133,9 +155,6 @@ def main(args):
         enable_swap=args.enable_swap,
         eval_freq=args.eval_freq,
         eval_episodes=args.eval_episodes,
-        fixed_opponent=args.fixed_opponent,
-        fixed_phase_episodes=args.fixed_phase_episodes,
-        pool_size=args.pool_size,
     )
 
     print("\nTraining complete!")
@@ -151,10 +170,24 @@ def main(args):
         agent2.save(save_dir / "agent2.pt")
         print(f"\nModels saved to {save_dir}")
 
+    # if args.plot:
+    #     plot_path = Path(args.save_path) / "training_stats.png" if args.save_path else None
+    #     plot_training_stats(stats, save_path=plot_path)
     if args.plot:
-        plot_path = Path(args.save_path) / "training_stats.png" if args.save_path else None
-        plot_training_stats(stats, save_path=plot_path)
-
+        plot_path = Path(args.save_path) / "training_stats_enhanced.png" if args.save_path else None
+        plot_enhanced_stats(stats, save_path=plot_path)
+        
+        # Stampa summary delle metriche
+        print("\n" + "="*70)
+        print("METRICS SUMMARY")
+        print("="*70)
+        summary = tracker.get_summary()
+        for key, values in summary.items():
+            print(f"{key}:")
+            print(f"  Mean: {values['mean']:.3f}")
+            print(f"  Std:  {values['std']:.3f}")
+            print(f"  Min:  {values['min']:.3f}")
+            print(f"  Max:  {values['max']:.3f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train MinMaxQ agents on Ultimate Tic Tac Toe")
@@ -177,10 +210,8 @@ if __name__ == "__main__":
     parser.add_argument('--swap', action='store_true', dest='enable_swap')  # Add explicit flag
     parser.add_argument('--no_swap', action='store_false', dest='enable_swap')
     parser.add_argument('--fixed_opponent', action='store_true', default=False, help='Train with fixed opponent (latest checkpoint)')
-    parser.add_argument('--fixed_phase_episodes', type=int, default=5000,
-                       help='Episodes per fixed‑opponent phase')
-    parser.add_argument('--pool_size', type=int, default=30,
-                       help='Number of past checkpoints to keep in pool')
+    parser.add_argument('--fixed_phase_episodes', type=int, default=5000, help='Episodes per fixed‑opponent phase')
+    parser.add_argument('--pool_size', type=int, default=30, help='Number of past checkpoints to keep in pool')
     # Evaluation
     parser.add_argument('--eval_freq', type=int, default=2000)
     parser.add_argument('--eval_episodes', type=int, default=20)

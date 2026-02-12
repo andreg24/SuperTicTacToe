@@ -11,7 +11,8 @@ import random
 from typing import List, Optional
 from pathlib import Path
 
-from agent import MinMaxQAgent, state_to_tensor
+from .agent import MinMaxQAgent 
+from .train import state_to_tensor
 
 Experience = namedtuple(
     'Experience',
