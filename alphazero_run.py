@@ -1,6 +1,7 @@
-import os
-os.environ["PYTHONWARNINGS"] = "ignore"
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+import os
 import argparse
 import random
 import sys
