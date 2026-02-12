@@ -12,7 +12,8 @@ def _ucb(parent, child, C):
 
 def get_board_perspective(env, perspective):
 	current = env.agents.index(env.agent_selection) + 1
-	opponent = 1 if current == 2 else 1
+	opponent = 1 if current == 2 else 2
 	board = np.array(env.board.cells)
 	board = np.where(board == current, 1 if perspective == PERSPECTIVE_SELF else -1, board)
-	return np.where(board == opponent, -1 if perspective == PERSPECTIVE_SELF else 1, board)
+	board = np.where(board == opponent, -1 if perspective == PERSPECTIVE_SELF else 1, board)
+	return board
