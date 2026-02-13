@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import os
 import argparse
 import random
+import datetime
 import sys
 import numpy as np
 import time
@@ -169,7 +170,7 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 		# print("Policy Loss", np.mean(losses_pi))
 		# print("Value Loss", np.mean(losses_v))
 		# print()
-		return np.mean(losses_pi), np.mean(losses_v)
+	return np.mean(losses_pi), np.mean(losses_v)
 
 
 if __name__ == "__main__":
@@ -224,7 +225,7 @@ if __name__ == "__main__":
 			batch_size=args.batch,
 			n_processes=args.n_processes
 		)
-		with open("training_" + datetime.now().strftime("%Y%m%d_%H%M") + ".csv") as f:
+		with open("local/training_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%s") + ".csv", "w") as f:
 			f.write("loss_pi,loss_v\n")
 			for line in stats:
 				f.write(f"{line[0]},{line[1]}\n")
