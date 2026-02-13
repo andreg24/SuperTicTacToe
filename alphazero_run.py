@@ -72,8 +72,9 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
-def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1):
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, model_out=None):
 	stats = []
+	best = None, None
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
@@ -91,7 +92,12 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 			samples.extend(ep_samples)
 		random.shuffle(samples)
 		# print("All episodes executed. Training...")
-		stats.append(train_model(model, samples, n_epochs, batch_size))
+		loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
+		if loss_pi > best[0] and loss_v > best[1]:
+			best = (loss_pi, loss_v)
+			if model_out:
+				torch.save(model.state_dict(), model_out)
+		stats.append((loss_pi, loss_v))
 		# print()
 	return stats
 
@@ -231,13 +237,14 @@ if __name__ == "__main__":
 			n_epochs=args.n_epochs,
 			n_searches=args.n_searches,
 			batch_size=args.batch,
-			n_processes=args.n_processes
+			n_processes=args.n_processes,
+			model_out=args.checkpoint
 		)
 		with open("local/training_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%s") + ".csv", "w") as f:
 			f.write("loss_pi,loss_v\n")
 			for line in stats:
 				f.write(f"{line[0]},{line[1]}\n")
-		torch.save(model.state_dict(), args.checkpoint)
+		# torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
 		wins, total = 0, 0
@@ -245,4 +252,4 @@ if __name__ == "__main__":
 			if _eval(env, model) > 0:
 				wins += 1
 			total += 1
-		print(f"Stats: model won {wins} out of {total} matches ({wins / total}%)")
+		print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
