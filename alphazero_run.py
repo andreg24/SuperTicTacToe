@@ -177,7 +177,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--train", action="store_true", default=False)
 	parser.add_argument("--eval", action="store_true", default=False)
-	parser.add_argument("--model", action="store", default="mlp", choices=["mlp"])
+	parser.add_argument("--model", action="store", default="mlp", choices=["mlp", "resnet"])
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
@@ -190,7 +190,11 @@ if __name__ == "__main__":
 	parser.add_argument("--checkpoint", "-c", action="store", default="local/latest.pth")
 	args = parser.parse_args()
 
-	if args.train and args.eval:
+	if (
+		args.train and args.eval
+	) or (
+		not args.train and not args.eval
+	):
 		sys.exit("Train or eval?")
 	if args.train and (
 		not args.n_iters or
@@ -203,8 +207,12 @@ if __name__ == "__main__":
 		sys.exit("Evaluation requires --n_matches to be specified.")
 
 	env = ultimatetictactoe.env(render_mode=args.render)
-	model = MLP(torch.device(args.device))
-	# model = ResNet(torch.device(args.device))
+	if args.model == "mlp":
+		model = MLP(torch.device(args.device))
+	elif args.model == "resnet":
+		model = ResNet(torch.device(args.device))
+	else:
+		sys.exit(f"Available models: mlp, resnet")
 	if args.train:
 		# _train(
 		# 	env=env,
