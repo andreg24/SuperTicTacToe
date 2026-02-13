@@ -75,6 +75,8 @@ class ResNet(nn.Module):
 			(x == 0).to(torch.float32),
 			(x == 1).to(torch.float32)
 		])
+		if x.shape[1] != 3:
+			x = x.swapaxes(0, 1)
 		x = self.start(x)
 		for block in self.bb:
 			x = block(x)

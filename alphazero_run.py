@@ -6,10 +6,12 @@ import argparse
 import random
 import sys
 import numpy as np
+import time
 import torch
 import torch.optim as optim
 import cloudpickle
-from multiprocessing import Pool
+import multiprocessing as mp
+mp.set_start_method("spawn", force=True)
 
 from ultimatetictactoe import ultimatetictactoe
 from rl.alphazero.model import MLP, ResNet
@@ -43,7 +45,7 @@ def episode(env: ultimatetictactoe.env, model, n_searches):
 			return [(
 				hist_state,
 				hist_action_probs,
-				reward * (-1 ** (hist_player != current_player))
+				reward * ((-1) ** (hist_player != current_player))
 			) for hist_state, hist_player, hist_action_probs in samples]
 		
 		current_player *= -1
@@ -52,6 +54,7 @@ def episode(env: ultimatetictactoe.env, model, n_searches):
 
 def episode_async(env_fn, model, n_searches):
 	env = cloudpickle.loads(env_fn)()
+	model = cloudpickle.loads(model)
 	return episode(env, model, n_searches)
 
 def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_searches, batch_size):
@@ -69,19 +72,27 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 		print()
 
 def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1):
+	stats = []
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
-		with Pool(processes=n_processes) as pool:
-			results = pool.starmap(episode_async, [(cloudpickle.dumps(env_fn), model, n_searches) for _ in range(n_episodes)])
+		with mp.Pool(processes=n_processes) as pool:
+			results = pool.starmap(episode_async, [
+				(
+					cloudpickle.dumps(env_fn),
+					cloudpickle.dumps(model),
+					n_searches
+				) for _ in range(n_episodes)
+			])
 		
 		samples = []
 		for ep_samples in results:
 			samples.extend(ep_samples)
 		random.shuffle(samples)
-		print("All episodes executed. Training...")
-		train_model(model, samples, n_epochs, batch_size)
-		print()
+		# print("All episodes executed. Training...")
+		stats.append(train_model(model, samples, n_epochs, batch_size))
+		# print()
+	return stats
 
 def _eval(env: ultimatetictactoe.env, model):
 	model.eval()
@@ -146,7 +157,7 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 			loss_pi = -(t_pi * torch.log(p_pi)).sum(dim=1).mean()
 			loss_v = torch.sum((t_v - p_v.view(-1)) ** 2) / t_v.size()[0]
 			loss_total = loss_pi + loss_v
-			print(f"p_pi = {p_pi} | p_v = {p_v} | loss_pi = {loss_pi} | loss_v = {loss_v}")
+			# print(f"p_pi = {p_pi} | p_v = {p_v} | loss_pi = {loss_pi} | loss_v = {loss_v}")
 			losses_pi.append(loss_pi.detach().numpy())
 			losses_v.append(loss_v.detach().numpy())
 
@@ -155,9 +166,10 @@ def train_model(model, samples, n_epochs=1, batch_size=32):
 			optimizer.step()
 			batch_idx += 1
 		
-		print("Policy Loss", np.mean(losses_pi))
-		print("Value Loss", np.mean(losses_v))
-		print()
+		# print("Policy Loss", np.mean(losses_pi))
+		# print("Value Loss", np.mean(losses_v))
+		# print()
+		return np.mean(losses_pi), np.mean(losses_v)
 
 
 if __name__ == "__main__":
@@ -190,8 +202,8 @@ if __name__ == "__main__":
 		sys.exit("Evaluation requires --n_matches to be specified.")
 
 	env = ultimatetictactoe.env(render_mode=args.render)
-	# model = MLP(torch.device(args.device))
-	model = ResNet(torch.device(args.device))
+	model = MLP(torch.device(args.device))
+	# model = ResNet(torch.device(args.device))
 	if args.train:
 		# _train(
 		# 	env=env,
@@ -199,9 +211,10 @@ if __name__ == "__main__":
 		# 	n_iters=args.n_iters,
 		# 	n_episodes=args.n_episodes,
 		# 	n_epochs=args.n_epochs,
+		# 	n_searches=args.n_searches,
 		# 	batch_size=args.batch
 		# )
-		_train_async(
+		stats = _train_async(
 			env_fn=lambda: ultimatetictactoe.env(render_mode=args.render),
 			model=model,
 			n_iters=args.n_iters,
@@ -211,6 +224,10 @@ if __name__ == "__main__":
 			batch_size=args.batch,
 			n_processes=args.n_processes
 		)
+		with open("training_" + datetime.now().strftime("%Y%m%d_%H%M") + ".csv") as f:
+			f.write("loss_pi,loss_v\n")
+			for line in stats:
+				f.write(f"{line[0]},{line[1]}\n")
 		torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
