@@ -126,6 +126,7 @@ def _eval(env: ultimatetictactoe.env, model):
 		})
 		env.step(action)
 		observation, reward, termination, truncation, info = env.last()
+		reward = -reward
 
 		if termination:
 			if reward > 0:
@@ -134,7 +135,7 @@ def _eval(env: ultimatetictactoe.env, model):
 				print(f"Player {current_player} has lost!")
 			else:
 				print("It's a tie!")
-			return current_player * reward
+			return reward
 		
 		current_player *= -1
 		board = env.board
