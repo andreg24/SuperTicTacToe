@@ -93,7 +93,7 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 		random.shuffle(samples)
 		# print("All episodes executed. Training...")
 		loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
-		if loss_pi > best[0] and loss_v > best[1]:
+		if loss_pi < best[0] and loss_v < best[1]:
 			best = (loss_pi, loss_v)
 			if model_out:
 				torch.save(model.state_dict(), model_out)
