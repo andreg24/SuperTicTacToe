@@ -1,6 +1,17 @@
 """
 Main training script for MinMaxQ on Ultimate Tic Tac Toe.
 Compatible with the base environment (no reward shaping).
+
+python train_minmaxq.py \
+    --episodes 100000 \
+    --epsilon_end 0.05 \
+    --epsilon_decay 0.99995 \
+    --lr 0.0001 \
+    --batch_size 128 \
+    --no_swap \
+    --save_path weights_no_fixed_opponent \
+    --plot \
+    2>&1 | tee training_stdout_no_fixed_opponent.txt
 """
 
 import argparse
@@ -216,7 +227,7 @@ if __name__ == "__main__":
     parser.add_argument('--eval_freq', type=int, default=2000)
     parser.add_argument('--eval_episodes', type=int, default=20)
     # Saving & plotting
-    parser.add_argument('--save_path', type=str, default='rl/minmaxq/weights_new')
+    parser.add_argument('--save_path', type=str, default='/weights')
     parser.add_argument('--plot', action='store_true', default=True)
     parser.add_argument('--cpu', action='store_true', help='Force CPU usage')
     args = parser.parse_args()
