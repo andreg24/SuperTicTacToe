@@ -5,10 +5,15 @@ Add this to your train.py
 
 import torch
 import numpy as np
+import sys
+import os
 from collections import defaultdict
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+# Aggiungi path solo se necessario
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, "../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 
 class MetricsTracker:
@@ -79,6 +84,8 @@ def compute_q_value_statistics(agent, states_batch):
         dict with Q-value statistics
     """
     with torch.no_grad():
+        # Sposta il batch sul device dell'agent
+        states_batch = states_batch.to(agent.device)  
         q_values = agent.q_network(states_batch)  # (B, 81)
         
         stats = {
@@ -245,10 +252,6 @@ def enhanced_train_minmaxq(
     """
     Enhanced training loop with comprehensive metrics.
     """
-    import sys
-    sys.path.insert(0, '.')
-    from rl.minmaxq.train import ReplayBuffer, EpisodeMemory, play_episode
-
     from train import ReplayBuffer, EpisodeMemory, play_episode
     
     buffer1 = ReplayBuffer(buffer_capacity)
