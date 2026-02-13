@@ -74,7 +74,7 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 
 def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, model_out=None):
 	stats = []
-	best = None, None
+	best = float("inf"), float("inf")
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
