@@ -508,7 +508,8 @@ def plot_enhanced_stats(stats, save_path=None):
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         print(f"Enhanced plot saved to {save_path}")
     
-    plt.show()
+    # plt.show()
+    plt.close()
 
 
 if __name__ == "__main__":
