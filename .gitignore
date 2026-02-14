@@ -214,3 +214,4 @@ rl/independent_algo/weights/*
 random.pk
 
 local/
+*checkpoint*
