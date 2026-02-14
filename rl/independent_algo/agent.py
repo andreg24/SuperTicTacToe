@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 import random
 import numpy as np
 
@@ -261,8 +262,13 @@ class ManualAgent(BaseAgent):
 
 
 def state_to_tensor(
-    state, turn_enabled=True, dtype=torch.float32, device=torch.device("cpu")
+    state,
+    turn_enabled=True, # if adding turn info to tensor
+    dtype=torch.float32,
+    device=torch.device("cpu"),
 ):
+    """Takes the state/observation dict and returns a tensor"""
+
     # consider adding a 4th channel for the turn number
     board_tensor = torch.tensor(state["observation"])
     action_mask_tensor = torch.tensor(state["action_mask"].reshape(9, 9)).unsqueeze(0)
@@ -285,15 +291,16 @@ class NeuralAgent(BaseAgent):
 
     def __init__(
         self,
-        name,
-        epsilon=0.1,
-        learning_power=2,
-        exploration_power=6,
-        policy_net=None,
-        optimizer=None,
-        device=None,
-        mode="sample",
-    ):
+        name: str,
+        epsilon: float = 0.1,
+        learning_power: int = 2,
+        exploration_power: int = 6,
+        policy_net: Optional[nn.Module] = None,
+        force_mask: bool = True,
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        device: Optional[torch.device] = None,
+        mode: str = "sample",
+    ) -> None:
         super().__init__(name)
         self.policy_net = (
             policy_net
@@ -307,6 +314,7 @@ class NeuralAgent(BaseAgent):
                 self.policy_net.parameters(), lr=epsilon**learning_power
             )
         )
+        self.force_mask = force_mask
         self.device = device if device is not None else torch.device("cpu")
         self.mode = mode
 
@@ -318,8 +326,15 @@ class NeuralAgent(BaseAgent):
         """
 
         state_tensor = state_to_tensor(state, device=self.device)
+            
 
         probs = self.policy_net(state_tensor)
+
+        if self.force_mask:
+            # TODO
+            # probs[2] = 
+            pass
+
         dist = torch.distributions.Categorical(probs)
         if self.mode == 'sample':
             action = dist.sample()

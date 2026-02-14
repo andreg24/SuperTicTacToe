@@ -1,9 +1,16 @@
 # TODO
 
-import torch
-import numpy as np
-from utils.board import TRANSFORMATIONS
+from typing import Optional
+import os
+import datetime
 import tqdm
+import numpy as np
+
+import torch
+
+from utils.board import TRANSFORMATIONS
+from .algo_utils import format_datetime
+
 
 # def obs_to_tensor(state):
 #     # consider adding a 4th channel for the turn number
@@ -149,11 +156,13 @@ def reinforce_update(agent, trajectory, gamma=0.99):
     n = len(trajectory["observations"])
     returns = []
     for i in range(n - 1, -1, -1):
-        G = rewards[i] + G * gamma ** (i - n + 1)
+        # G = rewards[i] + G * gamma ** (i - n + 1)
+        G = rewards[i] + G * gamma
         returns.insert(0, G)
     returns = torch.tensor(returns, dtype=torch.float32)
 
-    loss = -(G * log_probs_tensor).sum()
+    # loss = -(G * log_probs_tensor).sum()
+    loss = -(returns * log_probs_tensor).sum()
     agent.update(loss)
 
 
@@ -170,21 +179,39 @@ def reinforce(
     px=0.3,
     pt=0.5,
     max_semi_turn=15,
-):
+    checkpoint_rate: Optional[int] = None,
+    experiment_name: Optional[str] = None,
+) -> None:
+    
+    if checkpoint_rate is not None:
+        if experiment_name is None:
+            experiment_name = format_datetime(str(datetime.datetime.now()))
+        # check folder existence
+        checkpoint_folder = f"./rl/independent_algo/logs/checkpoints/{experiment_name}"
+        if update1:
+            os.makedirs(checkpoint_folder + "/agent_1", exist_ok=True)
+        if update2:
+            os.makedirs(checkpoint_folder + "/agent_2", exist_ok=True)
+
+
     TR = Trajectory(env, agent_1, agent_2, True)
     if enable_transform:
         schedule = generate_schedule(num_episodes, px, pt, max_semi_turn)
 
     for ep in tqdm.trange(num_episodes):
+
+        # swap players at each epoch
         if enable_swap and ep > 0:
             TR.swap_players()
 
+        # perform transformation
         if enable_transform and schedule[1][ep] != 0:
             TR.compute(
                 schedule[1][ep], TRANSFORMATIONS[schedule[0][ep]], schedule[1][ep]
             )
         else:
             TR.compute()
+
         trajectory = TR.trajectory
 
         if not enable_swap or ep % 2 == 0:
@@ -197,6 +224,14 @@ def reinforce(
                 reinforce_update(agent_1, trajectory["player_2"], gamma)
             if update2:
                 reinforce_update(agent_2, trajectory["player_1"], gamma)
+        
+        if checkpoint_rate is not None:
+            if ep != 0 and ep%checkpoint_rate == 0 or ep==num_episodes-1:
+                # save weights
+                if update1:
+                    torch.save(agent_1.policy_net.state_dict(), checkpoint_folder+f"/agent_1/model_{ep}.pt")
+                if update2:
+                    torch.save(agent_2.policy_net.state_dict(), checkpoint_folder+f"/agent_2/model_{ep}.pt")
 
 
 def compute_games(env, agent1, agent2, n, enable_swap=True):

@@ -214,23 +214,4 @@ rl/independent_algo/weights/*
 random.pk
 
 local/
-
-
-# Training weights and model checkpoints
-*.weights.*
-*.h5
-*.hdf5
-*.pth
-*.pt
-*.ckpt
-*.bin
-*.safetensors
-*.pkl
-*.joblib
-*.pickle
-*.model
-*.net
-
-# Common weight directories (if they contain only generated files)
-checkpoints/
-models/          # Only if this folder holds trained models, not source code
+*checkpoint*

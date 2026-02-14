@@ -1,6 +1,7 @@
 numpy
 pygame
 Pillow
+scipy
 gymnasium
 pettingzoo
 tqdm
