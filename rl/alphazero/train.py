@@ -1,5 +1,6 @@
 import random
 import torch
+from multiprocessing import Pool
 
 from ..ultimatetictactoe import ultimatetictactoe
 from .model import MLP
@@ -35,6 +36,10 @@ def episode(env: ultimatetictactoe.env, model):
 		current_player *= -1
 		board = env.board.copy()
 
+def episode_async(env_fn: callable, model):
+	env = env_fn()
+	return episode(env, model)
+
 def train(env: ultimatetictactoe.env, model, n_iters, n_episodes):
 	for i in range(1, n_iters + 1):
 		print(f"{i}/{n_iters}")
@@ -45,6 +50,18 @@ def train(env: ultimatetictactoe.env, model, n_iters, n_episodes):
 		
 		random.shuffle(samples)
 
+def train_async(env_fn: callable, model, n_iters, n_episodes):
+	for i in range(1, n_iters + 1):
+		print(f"{i}/{n_iters}")
+
+		with Pool(processes=8) as pool:
+			results = pool.starmap(episode_async, [(env_fn, model) for _ in range(n_episodes)])
+		
+		samples = []
+		for ep_samples in results:
+			samples.extend(ep_samples)
+
+		random.shuffle(samples)
 
 if __name__ == "__main__":
 	env = ultimatetictactoe.env()

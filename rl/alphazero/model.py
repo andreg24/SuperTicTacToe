@@ -40,8 +40,63 @@ class MLP(nn.Module):
 
 
 class ResNet(nn.Module):
-	def __init__(self, device, board_size=81, action_size=81):
+	def __init__(self, device, n_hidden=64, n_resnet_blocks=4, board_rows=9, board_cols=9, action_size=81):
 		super(ResNet, self).__init__()
+		self.start = nn.Sequential(
+			nn.Conv2d(3, n_hidden, kernel_size=3, padding=1),
+			nn.BatchNorm2d(n_hidden),
+			nn.ReLU()
+		)
+		self.bb = nn.ModuleList([
+			ResBlock(n_hidden) for _ in range(n_resnet_blocks)
+		])
+		self.policy_head = nn.Sequential(
+			nn.Conv2d(n_hidden, 32, kernel_size=3, padding=1),
+			nn.BatchNorm2d(32),
+			nn.ReLU(),
+			nn.Flatten(),
+			nn.Linear(32 * board_rows * board_cols, action_size),
+			nn.Softmax(dim=-1)
+		)
+		self.value_head = nn.Sequential(
+			nn.Conv2d(n_hidden, 3, kernel_size=3, padding=1),
+			nn.BatchNorm2d(3),
+			nn.ReLU(),
+			nn.Flatten(),
+			nn.Linear(3 * board_rows * board_cols, 1),
+			nn.Tanh()
+		)
+		self.board_rows, self.board_cols = board_rows, board_cols
+
+	def forward(self, x):
+		x = x.reshape((-1, self.board_rows, self.board_cols))
+		x = torch.stack([
+			(x == -1).to(torch.float32),
+			(x == 0).to(torch.float32),
+			(x == 1).to(torch.float32)
+		])
+		if x.shape[1] != 3:
+			x = x.swapaxes(0, 1)
+		x = self.start(x)
+		for block in self.bb:
+			x = block(x)
+		return self.policy_head(x), self.value_head(x)
+
+	def predict(self, board):
+		# board = torch.FloatTensor(
+		# 	board.astype(np.float32)
+		# ).to(self.device).view(1, self.size)
+		board = torch.stack((
+			torch.tensor(board == -1, dtype=torch.float32),
+			torch.tensor(board == 0, dtype=torch.float32),
+			torch.tensor(board == 1, dtype=torch.float32)
+		))
+		self.eval()
+
+		with torch.no_grad():
+			pi, v = self.forward(board)
+
+		return pi.data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 
 
 class ResBlock(nn.Module):
