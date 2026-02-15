@@ -247,6 +247,7 @@ def compute_games(env, agent1, agent2, n, enable_swap=True):
     game_turns = np.zeros(n)
 
     for i in range(n):
+        print(f"Game {i+1}/{n}")
         if enable_swap and i > 0:
             trajectory.swap_players()
         trajectory.compute()
