@@ -254,9 +254,10 @@ if __name__ == "__main__":
 		# torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
-		wins, total = 0, 0
-		for _ in range(args.n_matches):
-			if _eval(env, model, args.n_matches, args.n_searches) > 0:
-				wins += 1
-			total += 1
-		print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
+		# wins, total = 0, 0
+		# for _ in range(args.n_matches):
+		# 	if _eval(env, model, args.n_matches, args.n_searches) > 0:
+		# 		wins += 1
+		# 	total += 1
+		_eval(env, model, args.n_matches, args.n_searches)
+		# print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
