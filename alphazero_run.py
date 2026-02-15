@@ -139,10 +139,10 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 		
 # 		current_player *= -1
 # 		board = env.board
-def _eval(env: ultimatetictactoe.env, model):
+def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches):
 	from rl.agent import AlphaZeroAgent, RandomAgent
 	agent1 = RandomAgent("bob", action_mask_enabled=False)
-	agent2 = AlphaZeroAgent("alfio", env, model, -1, n_searches=128)
+	agent2 = AlphaZeroAgent("alfio", env, model, -1, n_searches=64)
 	stats = compute_games(env, agent2, agent1, 512, enable_swap=False)
 	print(stats)
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
 		wins, total = 0, 0
 		for _ in range(args.n_matches):
-			if _eval(env, model) > 0:
+			if _eval(env, model, args.n_matches, args.n_searches) > 0:
 				wins += 1
 			total += 1
 		print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
