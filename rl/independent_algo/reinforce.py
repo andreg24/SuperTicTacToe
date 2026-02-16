@@ -12,13 +12,6 @@ from utils.board import TRANSFORMATIONS
 from .algo_utils import format_datetime
 
 
-# def obs_to_tensor(state):
-#     # consider adding a 4th channel for the turn number
-#     board_tensor = torch.tensor(state['observation'])
-#     action_mask_tensor = torch.tensor(state['action_mask'].reshape(9, 9)).unsqueeze(0)
-#     return torch.cat((board_tensor, action_mask_tensor)).unsqueeze(0).to(torch.float32)
-
-
 class Trajectory:
 
     def __init__(self, env, agent_1, agent_2, enable_log_prob=False):
@@ -158,12 +151,13 @@ def reinforce_update(agent, trajectory, gamma=0.99):
     for i in range(n - 1, -1, -1):
         # G = rewards[i] + G * gamma ** (i - n + 1)
         G = rewards[i] + G * gamma
-        returns.insert(0, G)
-    returns = torch.tensor(returns, dtype=torch.float32)
+        returns.insert(0, G.item())
+    returns = torch.tensor(returns, dtype=torch.float32, device=log_probs_tensor.device)
 
     # loss = -(G * log_probs_tensor).sum()
     loss = -(returns * log_probs_tensor).sum()
     agent.update(loss)
+    return loss.item()
 
 
 def reinforce(
@@ -181,13 +175,18 @@ def reinforce(
     max_semi_turn=15,
     checkpoint_rate: Optional[int] = None,
     experiment_name: Optional[str] = None,
+    device: torch.device = torch.device("cpu")
 ) -> None:
     
+    agent_1_losses = []
+    agent_2_losses = []
+    
     if checkpoint_rate is not None:
+        datetime_string = format_datetime(str(datetime.datetime.now()))
         if experiment_name is None:
-            experiment_name = format_datetime(str(datetime.datetime.now()))
+            experiment_name = datetime_string
         # check folder existence
-        checkpoint_folder = f"./rl/independent_algo/logs/checkpoints/{experiment_name}"
+        checkpoint_folder = f"./rl/independent_algo/logs/checkpoints/{experiment_name}/{datetime_string}"
         if update1:
             os.makedirs(checkpoint_folder + "/agent_1", exist_ok=True)
         if update2:
@@ -216,14 +215,18 @@ def reinforce(
 
         if not enable_swap or ep % 2 == 0:
             if update1:
-                reinforce_update(agent_1, trajectory["player_1"], gamma)
+                loss = reinforce_update(agent_1, trajectory["player_1"], gamma)
+                agent_1_losses.append(loss)
             if update2:
-                reinforce_update(agent_2, trajectory["player_2"], gamma)
+                loss = reinforce_update(agent_2, trajectory["player_2"], gamma)
+                agent_2_losses.append(loss)
         else:
             if update1:
-                reinforce_update(agent_1, trajectory["player_2"], gamma)
+                loss = reinforce_update(agent_1, trajectory["player_2"], gamma)
+                agent_1_losses.append(loss)
             if update2:
-                reinforce_update(agent_2, trajectory["player_1"], gamma)
+                loss = reinforce_update(agent_2, trajectory["player_1"], gamma)
+                agent_2_losses.append(loss)
         
         if checkpoint_rate is not None:
             if ep != 0 and ep%checkpoint_rate == 0 or ep==num_episodes-1:
@@ -232,6 +235,7 @@ def reinforce(
                     torch.save(agent_1.policy_net.state_dict(), checkpoint_folder+f"/agent_1/model_{ep}.pt")
                 if update2:
                     torch.save(agent_2.policy_net.state_dict(), checkpoint_folder+f"/agent_2/model_{ep}.pt")
+    return agent_1_losses, agent_2_losses
 
 
 def compute_games(env, agent1, agent2, n, enable_swap=True):

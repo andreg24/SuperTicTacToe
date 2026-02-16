@@ -302,3 +302,7 @@ class raw_env(AECEnv, EzPickle):
         self.board.apply_transformation(transformation)
         if self.last_action != -1:
             self.last_action = transformation.pos_transform(self.last_action, 9)
+
+
+    def save_snapshot(self, path: str = "game.png", dir: str = "img"):
+        pygame.image.save(self.screen, dir + path)
