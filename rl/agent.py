@@ -6,6 +6,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from rl.alphazero.mcts import MCTS
+from rl.alphazero.utils import get_board_perspective
 from utils.board_utils import relative_to_absolute
 
 
@@ -262,7 +264,7 @@ class ManualAgent(BaseAgent):
 
 
 def state_to_tensor(
-    state,
+    state: dict[np.ndarray],
     turn_enabled=True, # if adding turn info to tensor
     dtype=torch.float32,
     device=torch.device("cpu"),
@@ -325,7 +327,7 @@ class NeuralAgent(BaseAgent):
         and the last one is the action mask for the board
         """
 
-        state_tensor = state_to_tensor(state, device=self.device)
+        state_tensor = state_to_tensor(state)
             
 
         probs = self.policy_net(state_tensor)
@@ -353,3 +355,25 @@ class NeuralAgent(BaseAgent):
     
     def train(self):
         self.policy_net.train()
+
+
+class AlphaZeroAgent(BaseAgent):
+	def __init__(self, name, env, model, player, n_searches=128):
+		super().__init__(name)
+		self.env = env
+		self.model = model
+		self.model.eval()
+		self.mcts = MCTS(env, n_searches=n_searches)
+		self.player = player
+		self.board = None
+
+	def pick_action(self, state):
+		self.board = self.env.board
+		state = get_board_perspective(self.env, self.player)
+		root, action_probs = self.mcts.run(self.model, self.player, self.board)
+		action = np.argmax(action_probs)
+		self.env.reset(options={
+			"board": self.board,
+			"next_player": self.player
+		})
+		return dict(action=action)

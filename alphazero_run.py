@@ -17,7 +17,7 @@ mp.set_start_method("spawn", force=True)
 from ultimatetictactoe import ultimatetictactoe
 from rl.alphazero.model import MLP, ResNet
 from rl.alphazero.mcts import MCTS
-from rl.alphazero.utils import get_board_perspective
+from rl.independent_algo.reinforce import compute_games
 
 
 def episode(env: ultimatetictactoe.env, model, n_searches):
@@ -101,44 +101,50 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 		# print()
 	return stats
 
-def _eval(env: ultimatetictactoe.env, model):
-	model.eval()
+# def _eval(env: ultimatetictactoe.env, model):
+# 	model.eval()
 
-	mcts = MCTS(env, n_searches=64)
-	current_player = 1
-	board = None
+# 	mcts = MCTS(env, n_searches=64)
+# 	current_player = 1
+# 	board = None
 
-	while True:
-		if current_player == 1:
-			action = env.action_space(env.agent_selection).sample(
-				env.action_mask(env.agent_selection)
-			)
-			# print(f"Player {current_player} (random) playing action {action}")
-		else:
-			state = get_board_perspective(env, current_player)
-			root, action_probs = mcts.run(model, current_player, board)
-			action = np.argmax(action_probs)
-			# print(f"Player {current_player} (model) playing action {action}")
+# 	while True:
+# 		if current_player == 1:
+# 			action = env.action_space(env.agent_selection).sample(
+# 				env.action_mask(env.agent_selection)
+# 			)
+# 			# print(f"Player {current_player} (random) playing action {action}")
+# 		else:
+# 			state = get_board_perspective(env, current_player)
+# 			root, action_probs = mcts.run(model, current_player, board)
+# 			action = np.argmax(action_probs)
+# 			# print(f"Player {current_player} (model) playing action {action}")
 
-		env.reset(options={
-			"board": board,
-			"next_player": current_player
-		})
-		env.step(action)
-		observation, reward, termination, truncation, info = env.last()
-		reward = -reward
+# 		env.reset(options={
+# 			"board": board,
+# 			"next_player": current_player
+# 		})
+# 		env.step(action)
+# 		observation, reward, termination, truncation, info = env.last()
+# 		reward = -reward
 
-		if termination:
-			if reward > 0:
-				print(f"Player {current_player} has won!")
-			elif reward < 0:
-				print(f"Player {current_player} has lost!")
-			else:
-				print("It's a tie!")
-			return reward
+# 		if termination:
+# 			if reward > 0:
+# 				print(f"Player {current_player} has won!")
+# 			elif reward < 0:
+# 				print(f"Player {current_player} has lost!")
+# 			else:
+# 				print("It's a tie!")
+# 			return reward
 		
-		current_player *= -1
-		board = env.board
+# 		current_player *= -1
+# 		board = env.board
+def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches):
+	from rl.agent import AlphaZeroAgent, RandomAgent
+	agent1 = RandomAgent("bob", action_mask_enabled=False)
+	agent2 = AlphaZeroAgent("alfio", env, model, -1, n_searches=n_searches)
+	stats = compute_games(env, agent2, agent1, n_matches, enable_swap=False)
+	print(stats)
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
 	optimizer = optim.Adam(model.parameters(), lr=5e-4)
@@ -248,9 +254,10 @@ if __name__ == "__main__":
 		# torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
-		wins, total = 0, 0
-		for _ in range(args.n_matches):
-			if _eval(env, model) > 0:
-				wins += 1
-			total += 1
-		print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
+		# wins, total = 0, 0
+		# for _ in range(args.n_matches):
+		# 	if _eval(env, model, args.n_matches, args.n_searches) > 0:
+		# 		wins += 1
+		# 	total += 1
+		_eval(env, model, args.n_matches, args.n_searches)
+		# print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
