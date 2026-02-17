@@ -375,6 +375,8 @@ def plot_enhanced_stats(stats, save_path=None):
     """
     Create comprehensive visualization of training.
     """
+    import matplotlib
+    matplotlib.use('Agg')  # ← QUESTA SALVA TUTTO
     import matplotlib.pyplot as plt
     
     fig = plt.figure(figsize=(20, 12))

@@ -1,0 +1,384 @@
+(RL) barbara@barbara:~/Downloads/Reinforcement/SuperTicTacToe/rl/minmaxq$ python train_minmaxq.py \
+    --episodes 60000 \
+    --epsilon_end 0.05 \
+    --epsilon_decay 0.99995 \
+    --lr 0.0001 \
+    --batch_size 128 \
+    --fixed_opponent \
+    --fixed_phase_episodes 3000 \
+    --target_update_freq 1000 \
+    --eval_freq 2000 \
+    --save_path weights_combo_optimized_2
+/home/barbara/.pyenv/versions/RL/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+Using device: cuda
+Environment created.
+Agents created. Q-network parameters: 697937
+
+============================================================
+Episode 2000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 25.0%
+  Draw Rate: 15.0%
+  Avg Turns to Win: 59.2
+  Avg Turns to Loss: 53.2
+  First Move Center: 0.0%
+  Epsilon: 0.905
+  Q-values: mean=0.011, std=0.090
+============================================================
+
+============================================================
+Episode 4000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 35.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 57.5
+  Avg Turns to Loss: 57.9
+  First Move Center: 0.0%
+  Epsilon: 0.819
+  Q-values: mean=0.017, std=0.076
+============================================================
+
+============================================================
+Episode 6000 - Detailed Evaluation:
+  Win Rate: 45.0%
+  Loss Rate: 55.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 60.1
+  Avg Turns to Loss: 56.0
+  First Move Center: 0.0%
+  Epsilon: 0.741
+  Q-values: mean=0.008, std=0.072
+============================================================
+
+============================================================
+Episode 8000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 40.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 58.2
+  Avg Turns to Loss: 58.5
+  First Move Center: 0.0%
+  Epsilon: 0.670
+  Q-values: mean=0.007, std=0.053
+============================================================
+
+============================================================
+Episode 10000 - Detailed Evaluation:
+  Win Rate: 40.0%
+  Loss Rate: 55.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 54.0
+  Avg Turns to Loss: 57.7
+  First Move Center: 0.0%
+  Epsilon: 0.606
+  Q-values: mean=0.011, std=0.071
+============================================================
+
+============================================================
+Episode 12000 - Detailed Evaluation:
+  Win Rate: 50.0%
+  Loss Rate: 40.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 54.2
+  Avg Turns to Loss: 55.0
+  First Move Center: 0.0%
+  Epsilon: 0.549
+  Q-values: mean=0.007, std=0.057
+============================================================
+
+============================================================
+Episode 14000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 35.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 60.2
+  Avg Turns to Loss: 54.7
+  First Move Center: 0.0%
+  Epsilon: 0.497
+  Q-values: mean=0.004, std=0.062
+============================================================
+
+============================================================
+Episode 16000 - Detailed Evaluation:
+  Win Rate: 40.0%
+  Loss Rate: 55.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 56.0
+  Avg Turns to Loss: 56.4
+  First Move Center: 0.0%
+  Epsilon: 0.449
+  Q-values: mean=0.002, std=0.071
+============================================================
+
+============================================================
+Episode 18000 - Detailed Evaluation:
+  Win Rate: 55.0%
+  Loss Rate: 35.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 53.4
+  Avg Turns to Loss: 58.0
+  First Move Center: 0.0%
+  Epsilon: 0.407
+  Q-values: mean=0.006, std=0.056
+============================================================
+
+============================================================
+Episode 20000 - Detailed Evaluation:
+  Win Rate: 65.0%
+  Loss Rate: 20.0%
+  Draw Rate: 15.0%
+  Avg Turns to Win: 55.6
+  Avg Turns to Loss: 56.0
+  First Move Center: 0.0%
+  Epsilon: 0.368
+  Q-values: mean=0.004, std=0.078
+============================================================
+
+============================================================
+Episode 22000 - Detailed Evaluation:
+  Win Rate: 40.0%
+  Loss Rate: 60.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 55.8
+  Avg Turns to Loss: 58.5
+  First Move Center: 0.0%
+  Epsilon: 0.333
+  Q-values: mean=0.001, std=0.060
+============================================================
+
+============================================================
+Episode 24000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 40.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 57.2
+  Avg Turns to Loss: 51.5
+  First Move Center: 0.0%
+  Epsilon: 0.301
+  Q-values: mean=-0.003, std=0.095
+============================================================
+
+============================================================
+Episode 26000 - Detailed Evaluation:
+  Win Rate: 55.0%
+  Loss Rate: 45.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 52.5
+  Avg Turns to Loss: 59.0
+  First Move Center: 0.0%
+  Epsilon: 0.273
+  Q-values: mean=-0.003, std=0.075
+============================================================
+
+============================================================
+Episode 28000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 35.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 57.0
+  Avg Turns to Loss: 56.3
+  First Move Center: 0.0%
+  Epsilon: 0.247
+  Q-values: mean=0.000, std=0.085
+============================================================
+
+============================================================
+Episode 30000 - Detailed Evaluation:
+  Win Rate: 50.0%
+  Loss Rate: 50.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 51.6
+  Avg Turns to Loss: 58.2
+  First Move Center: 0.0%
+  Epsilon: 0.223
+  Q-values: mean=-0.001, std=0.093
+============================================================
+
+============================================================
+Episode 32000 - Detailed Evaluation:
+  Win Rate: 65.0%
+  Loss Rate: 35.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 56.4
+  Avg Turns to Loss: 53.7
+  First Move Center: 0.0%
+  Epsilon: 0.202
+  Q-values: mean=-0.004, std=0.089
+============================================================
+
+============================================================
+Episode 34000 - Detailed Evaluation:
+  Win Rate: 70.0%
+  Loss Rate: 25.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 53.6
+  Avg Turns to Loss: 53.8
+  First Move Center: 0.0%
+  Epsilon: 0.183
+  Q-values: mean=-0.003, std=0.080
+============================================================
+
+============================================================
+Episode 36000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 35.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 50.3
+  Avg Turns to Loss: 59.1
+  First Move Center: 0.0%
+  Epsilon: 0.165
+  Q-values: mean=-0.003, std=0.107
+============================================================
+
+============================================================
+Episode 38000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 35.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 51.2
+  Avg Turns to Loss: 56.0
+  First Move Center: 0.0%
+  Epsilon: 0.150
+  Q-values: mean=0.004, std=0.100
+============================================================
+
+============================================================
+Episode 40000 - Detailed Evaluation:
+  Win Rate: 70.0%
+  Loss Rate: 15.0%
+  Draw Rate: 15.0%
+  Avg Turns to Win: 53.1
+  Avg Turns to Loss: 56.0
+  First Move Center: 0.0%
+  Epsilon: 0.135
+  Q-values: mean=-0.005, std=0.091
+============================================================
+
+============================================================
+Episode 42000 - Detailed Evaluation:
+  Win Rate: 55.0%
+  Loss Rate: 35.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 53.6
+  Avg Turns to Loss: 56.9
+  First Move Center: 0.0%
+  Epsilon: 0.122
+  Q-values: mean=-0.011, std=0.092
+============================================================
+
+============================================================
+Episode 44000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 40.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 52.3
+  Avg Turns to Loss: 52.6
+  First Move Center: 0.0%
+  Epsilon: 0.111
+  Q-values: mean=-0.006, std=0.098
+============================================================
+
+============================================================
+Episode 46000 - Detailed Evaluation:
+  Win Rate: 65.0%
+  Loss Rate: 35.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 56.5
+  Avg Turns to Loss: 57.3
+  First Move Center: 0.0%
+  Epsilon: 0.100
+  Q-values: mean=-0.001, std=0.105
+============================================================
+
+============================================================
+Episode 48000 - Detailed Evaluation:
+  Win Rate: 55.0%
+  Loss Rate: 45.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 50.2
+  Avg Turns to Loss: 56.9
+  First Move Center: 0.0%
+  Epsilon: 0.091
+  Q-values: mean=-0.007, std=0.109
+============================================================
+
+============================================================
+Episode 50000 - Detailed Evaluation:
+  Win Rate: 65.0%
+  Loss Rate: 35.0%
+  Draw Rate: 0.0%
+  Avg Turns to Win: 54.5
+  Avg Turns to Loss: 57.7
+  First Move Center: 0.0%
+  Epsilon: 0.082
+  Q-values: mean=-0.002, std=0.102
+============================================================
+
+============================================================
+Episode 52000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 30.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 57.3
+  Avg Turns to Loss: 58.0
+  First Move Center: 0.0%
+  Epsilon: 0.074
+  Q-values: mean=-0.005, std=0.101
+============================================================
+
+============================================================
+Episode 54000 - Detailed Evaluation:
+  Win Rate: 75.0%
+  Loss Rate: 20.0%
+  Draw Rate: 5.0%
+  Avg Turns to Win: 57.1
+  Avg Turns to Loss: 55.5
+  First Move Center: 0.0%
+  Epsilon: 0.067
+  Q-values: mean=-0.008, std=0.090
+============================================================
+
+============================================================
+Episode 56000 - Detailed Evaluation:
+  Win Rate: 60.0%
+  Loss Rate: 30.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 52.8
+  Avg Turns to Loss: 56.7
+  First Move Center: 0.0%
+  Epsilon: 0.061
+  Q-values: mean=-0.000, std=0.098
+============================================================
+
+============================================================
+Episode 58000 - Detailed Evaluation:
+  Win Rate: 55.0%
+  Loss Rate: 35.0%
+  Draw Rate: 10.0%
+  Avg Turns to Win: 54.6
+  Avg Turns to Loss: 62.0
+  First Move Center: 0.0%
+  Epsilon: 0.055
+  Q-values: mean=-0.004, std=0.112
+============================================================
+
+Training complete!
+Agent1 vs Random:  Wins: 53.0%,  Losses: 36.5%,  Draws: 10.5%
+
+Models saved to weights_combo_optimized_2
+Enhanced plot saved to weights_combo_optimized_2/training_stats_enhanced.png
+
+======================================================================
+METRICS SUMMARY
+======================================================================
+winner:
+  Mean: 1.343
+  Std:  0.595
+  Min:  0.000
+  Max:  2.000
+turns_to_win:
+  Mean: 58.643
+  Std:  6.903
+  Min:  27.000
+  Max:  81.000

@@ -7,7 +7,6 @@ import numpy as np
 import pygame
 from gymnasium import spaces
 from gymnasium.utils import EzPickle
-import torch
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import AgentSelector, wrappers
@@ -36,7 +35,6 @@ def get_symbol(value):
 
 
 def env(**kwargs):
-    env = raw_env(**kwargs)
     env = wrappers.TerminateIllegalWrapper(env, illegal_reward=-1)
     env = wrappers.AssertOutOfBoundsWrapper(env)
     env = wrappers.OrderEnforcingWrapper(env)
@@ -86,6 +84,7 @@ class raw_env(AECEnv, EzPickle):
         }
 
         # ---returns---
+        self.dense_rewards = dense_rewards
         self.rewards = {a: 0.0 for a in self.agents}  # not accessed by last()
         self.terminations = {a: False for a in self.agents}
         self.truncations = {a: False for a in self.agents}
