@@ -17,6 +17,7 @@ mp.set_start_method("spawn", force=True)
 from ultimatetictactoe import ultimatetictactoe
 from rl.alphazero.model import MLP, ResNet
 from rl.alphazero.mcts import MCTS
+from rl.alphazero.utils import get_board_perspective
 from rl.independent_algo.reinforce import compute_games
 
 
