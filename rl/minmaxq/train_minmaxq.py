@@ -16,6 +16,8 @@ python train_minmaxq.py \
 
 import argparse
 import torch
+import matplotlib
+matplotlib.use('Agg')  # ← QUESTA SALVA TUTTO
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path

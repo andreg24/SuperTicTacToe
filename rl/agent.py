@@ -264,7 +264,7 @@ class ManualAgent(BaseAgent):
 
 
 def state_to_tensor(
-    state,
+    state: dict[np.ndarray],
     turn_enabled=True, # if adding turn info to tensor
     dtype=torch.float32,
     device=torch.device("cpu"),
@@ -327,7 +327,7 @@ class NeuralAgent(BaseAgent):
         and the last one is the action mask for the board
         """
 
-        state_tensor = state_to_tensor(state, device=self.device)
+        state_tensor = state_to_tensor(state)
             
 
         probs = self.policy_net(state_tensor)
