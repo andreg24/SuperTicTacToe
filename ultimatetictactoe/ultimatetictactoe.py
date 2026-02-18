@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+import torch
+
 import gymnasium
 import numpy as np
 import pygame
@@ -35,6 +37,7 @@ def get_symbol(value):
 
 
 def env(**kwargs):
+    env = raw_env(**kwargs)
     env = wrappers.TerminateIllegalWrapper(env, illegal_reward=-1)
     env = wrappers.AssertOutOfBoundsWrapper(env)
     env = wrappers.OrderEnforcingWrapper(env)
@@ -84,7 +87,6 @@ class raw_env(AECEnv, EzPickle):
         }
 
         # ---returns---
-        self.dense_rewards = dense_rewards
         self.rewards = {a: 0.0 for a in self.agents}  # not accessed by last()
         self.terminations = {a: False for a in self.agents}
         self.truncations = {a: False for a in self.agents}
