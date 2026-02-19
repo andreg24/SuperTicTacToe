@@ -17,6 +17,7 @@ mp.set_start_method("spawn", force=True)
 from ultimatetictactoe import ultimatetictactoe
 from rl.alphazero.model import MLP, ResNet
 from rl.alphazero.mcts import MCTS
+from rl.alphazero.utils import get_board_perspective
 from rl.independent_algo.reinforce import compute_games
 
 
@@ -115,8 +116,8 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 # 			)
 # 			# print(f"Player {current_player} (random) playing action {action}")
 # 		else:
-# 			state = get_board_perspective(env, current_player)
-# 			root, action_probs = mcts.run(model, current_player, board)
+# 			# state = get_board_perspective(env, current_player)
+# 			_, action_probs = mcts.run(model, current_player, board)
 # 			action = np.argmax(action_probs)
 # 			# print(f"Player {current_player} (model) playing action {action}")
 
@@ -141,9 +142,9 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 # 		board = env.board
 def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches):
 	from rl.agent import AlphaZeroAgent, RandomAgent
-	agent1 = RandomAgent("bob", action_mask_enabled=False)
-	agent2 = AlphaZeroAgent("alfio", env, model, -1, n_searches=n_searches)
-	stats = compute_games(env, agent2, agent1, n_matches, enable_swap=False)
+	agent1 = AlphaZeroAgent("player_1", env, model, 1, n_searches=n_searches)
+	agent2 = RandomAgent("player_2", action_mask_enabled=True)
+	stats = compute_games(env, agent1, agent2, n_matches, enable_swap=False)
 	print(stats)
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
@@ -256,7 +257,7 @@ if __name__ == "__main__":
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
 		# wins, total = 0, 0
 		# for _ in range(args.n_matches):
-		# 	if _eval(env, model, args.n_matches, args.n_searches) > 0:
+		# 	if _eval(env, model) > 0:
 		# 		wins += 1
 		# 	total += 1
 		_eval(env, model, args.n_matches, args.n_searches)

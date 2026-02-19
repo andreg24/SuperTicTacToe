@@ -365,15 +365,13 @@ class AlphaZeroAgent(BaseAgent):
 		self.model.eval()
 		self.mcts = MCTS(env, n_searches=n_searches)
 		self.player = player
-		self.board = None
 
 	def pick_action(self, state):
-		self.board = self.env.board
-		state = get_board_perspective(self.env, self.player)
-		root, action_probs = self.mcts.run(self.model, self.player, self.board)
+		board = self.env.board
+		root, action_probs = self.mcts.run(self.model, self.player * -1, board)
 		action = np.argmax(action_probs)
 		self.env.reset(options={
-			"board": self.board,
+			"board": board,
 			"next_player": self.player
 		})
 		return dict(action=action)
