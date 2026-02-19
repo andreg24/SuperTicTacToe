@@ -43,7 +43,8 @@ class MLP2(nn.Module):
 	def __init__(self, device, board_size=81, sub_board_size=9, action_size=81):
 		super(MLP2, self).__init__()
 		self.device = device
-		self.size = board_size
+		self.board_size = board_size
+		self.sub_board_size = sub_board_size
 
 		self.sub = nn.Sequential(
 			nn.Linear(sub_board_size, 32),
@@ -73,9 +74,10 @@ class MLP2(nn.Module):
 		self.to(device)
 
 	def forward(self, x):
-		x = x.reshape((-1, 9, 9))
+		x = x.reshape((-1, self.sub_board_size, self.sub_board_size))
 		x = self.sub(x)
-		x = x.flatten()
+		x = x.reshape((-1, self.sub_board_size * 64))
+		# print(x.shape)
 		x = self.super(x)
 
 		action_logits = self.action_head(x)
@@ -86,7 +88,7 @@ class MLP2(nn.Module):
 	def predict(self, board):
 		board = torch.FloatTensor(
 			board.astype(np.float32)
-		).to(self.device).view(1, self.size)
+		).to(self.device).view(1, self.board_size)
 		self.eval()
 		
 		with torch.no_grad():
