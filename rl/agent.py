@@ -418,7 +418,7 @@ class AlphaZeroAgent(BaseAgent):
 		self.mcts = MCTS(env, n_searches=n_searches)
 		self.player = player
 
-	def pick_action(self, state):
+	def pick_action(self, state, *args):
 		board = self.env.board
 		root, action_probs = self.mcts.run(self.model, self.player * -1, board)
 		action = np.argmax(action_probs)
