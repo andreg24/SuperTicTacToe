@@ -15,7 +15,7 @@ import multiprocessing as mp
 mp.set_start_method("spawn", force=True)
 
 from ultimatetictactoe import ultimatetictactoe
-from rl.alphazero.model import MLP, ResNet
+from rl.alphazero.model import MLP, MLP2, ResNet
 from rl.alphazero.mcts import MCTS
 from rl.alphazero.utils import get_board_perspective
 from rl.independent_algo.reinforce import compute_games
@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
 	env = ultimatetictactoe.env(render_mode=args.render)
 	if args.model == "mlp":
-		model = MLP(torch.device(args.device))
+		model = MLP2(torch.device(args.device))
 	elif args.model == "resnet":
 		model = ResNet(torch.device(args.device))
 	else:
