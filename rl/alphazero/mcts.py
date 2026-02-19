@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 from ultimatetictactoe import ultimatetictactoe
 from .utils import _ucb, get_board_perspective

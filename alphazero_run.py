@@ -76,10 +76,10 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, model_out=None):
 	stats = []
 	best = float("inf"), float("inf")
-	for i in range(1, n_iters + 1):
-		print(f"Iteration {i}/{n_iters}")
+	with mp.Pool(processes=n_processes) as pool:
+		for i in range(1, n_iters + 1):
+			print(f"Iteration {i}/{n_iters}")
 
-		with mp.Pool(processes=n_processes) as pool:
 			results = pool.starmap(episode_async, [
 				(
 					cloudpickle.dumps(env_fn),
@@ -87,18 +87,18 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 					n_searches
 				) for _ in range(n_episodes)
 			])
-		
-		samples = []
-		for ep_samples in results:
-			samples.extend(ep_samples)
-		random.shuffle(samples)
-		# print("All episodes executed. Training...")
-		loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
-		if loss_pi < best[0] and loss_v < best[1]:
-			best = (loss_pi, loss_v)
-			if model_out:
-				torch.save(model.state_dict(), model_out)
-		stats.append((loss_pi, loss_v))
+			
+			samples = []
+			for ep_samples in results:
+				samples.extend(ep_samples)
+			random.shuffle(samples)
+			# print("All episodes executed. Training...")
+			loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
+			if loss_pi < best[0] and loss_v < best[1]:
+				best = (loss_pi, loss_v)
+				if model_out:
+					torch.save(model.state_dict(), model_out)
+			stats.append((loss_pi, loss_v))
 		# print()
 	return stats
 

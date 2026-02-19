@@ -4,53 +4,50 @@ from typing import Optional
 import os
 import datetime
 import tqdm
+import random
 import numpy as np
 
 import torch
 
 from utils.board import TRANSFORMATIONS
+from utils.board_utils import Rotation, Reflection
 from .algo_utils import format_datetime
+from rl.agent import RandomAgent
 
 
 class Trajectory:
+    """
+    Docstring for Trajectory
+    """
 
-    def __init__(self, env, agent_1, agent_2, enable_log_prob=False):
+    def __init__(self, env, agent_1, agent_2, enable_log_prob=False, enable_tansform=False):
         self.env = env
         self.agent_1 = agent_1  # default player_1
         self.agent_2 = agent_2  # default player_2
         self.enable_log_prob = enable_log_prob
+        self.enable_transform = enable_tansform
         self.turn = 0
 
         self.trajectory = {
-            "player_1": {
+            f"player_{i+1}": {
                 "observations": [],
                 "actions": [],
                 "rewards": [],
                 "log_probs": [],
-            },
-            "player_2": {
-                "observations": [],
-                "actions": [],
-                "rewards": [],
-                "log_probs": [],
-            },
+            } 
+            for i in range(2)
         }
 
     def _reset(self) -> None:
         self.env.reset()
         self.trajectory = {
-            "player_1": {
+            f"player_{i+1}": {
                 "observations": [],
                 "actions": [],
                 "rewards": [],
                 "log_probs": [],
-            },
-            "player_2": {
-                "observations": [],
-                "actions": [],
-                "rewards": [],
-                "log_probs": [],
-            },
+            } 
+            for i in range(2)
         }
         self.transformations_schedule = {}
         self.turn = 0
@@ -78,14 +75,22 @@ class Trajectory:
         state = None
         action = None
 
+        rotation = Rotation(0)
+        reflection = Reflection(0)
+
         for agent in self.env.agent_iter():
+            k_rot = random.randint(0, 3)
+            k_ref = random.randint(0, 4)
+            rotation.k = k_rot
+            reflection.k = k_ref
+
             if max_turn is not None and self.turn == max_turn:
                 break
 
-            if self.turn == burnout_turn:
-                self._burnout(burnout_turn)
-            if transformation is not None and self.turn == transformation_turn:
-                self._apply_transformations(transformation)
+            # if self.turn == burnout_turn:
+            #     self._burnout(burnout_turn)
+            # if transformation is not None and self.turn == transformation_turn:
+            #     self._apply_transformations(transformation)
 
             state, reward, termination, truncation, info = (
                 self.env.last()
@@ -97,9 +102,15 @@ class Trajectory:
             # pick action
             else:
                 if agent == "player_1":
-                    output = self.agent_1.pick_action(state)
+                    if self.enable_transform:
+                        output = self.agent_1.pick_action(state, rotation, reflection)
+                    else:
+                        output = self.agent_1.pick_action(state, None, None)
                 else:
-                    output = self.agent_2.pick_action(state)
+                    if self.enable_transform:
+                        output = self.agent_2.pick_action(state, rotation, reflection)
+                    else:
+                        output = self.agent_2.pick_action(state, None, None)
 
                 action = output["action"]
                 if "log_prob" in output.keys():
@@ -175,6 +186,7 @@ def reinforce(
     max_semi_turn=15,
     checkpoint_rate: Optional[int] = None,
     experiment_name: Optional[str] = None,
+    validation_rate: Optional[int] = None,
     device: torch.device = torch.device("cpu")
 ) -> None:
     
@@ -191,13 +203,28 @@ def reinforce(
             os.makedirs(checkpoint_folder + "/agent_1", exist_ok=True)
         if update2:
             os.makedirs(checkpoint_folder + "/agent_2", exist_ok=True)
+    
+    if validation_rate is not None:
+        res_12 = []
+        res_1r = []
+        res_2r = []
+        ar = RandomAgent("boh")
+    else:
+        res_12 = None
+        res_1r = None
+        res_2r = None
 
 
-    TR = Trajectory(env, agent_1, agent_2, True)
+    TR = Trajectory(env, agent_1, agent_2, True, enable_tansform=enable_transform)
     if enable_transform:
         schedule = generate_schedule(num_episodes, px, pt, max_semi_turn)
 
     for ep in tqdm.trange(num_episodes):
+        if update1:
+            agent_1.train()
+        if update2:
+            agent_2.train()
+
 
         # swap players at each epoch
         if enable_swap and ep > 0:
@@ -235,10 +262,16 @@ def reinforce(
                     torch.save(agent_1.policy_net.state_dict(), checkpoint_folder+f"/agent_1/model_{ep}.pt")
                 if update2:
                     torch.save(agent_2.policy_net.state_dict(), checkpoint_folder+f"/agent_2/model_{ep}.pt")
-    return agent_1_losses, agent_2_losses
+        
+        if validation_rate is not None:
+            if ep != 0 and ep%validation_rate == 0 or ep == num_episodes-1:
+                res_12.append(compute_games(env, agent1=agent_1, agent2=agent_2, n=25, verbose=False))
+                res_1r.append(compute_games(env, agent1=agent_1, agent2=ar, n=25, verbose=False))
+                res_12.append(compute_games(env, agent1=agent_2, agent2=ar, n=25, verbose=False))
+    return agent_1_losses, agent_2_losses, res_12, res_1r, res_2r
 
 
-def compute_games(env, agent1, agent2, n, enable_swap=True):
+def compute_games(env, agent1, agent2, n, enable_swap=True, verbose=True):
     """Returns stats for n games played between the two agents"""
     agent1.eval()
     agent2.eval()
@@ -251,7 +284,8 @@ def compute_games(env, agent1, agent2, n, enable_swap=True):
     game_turns = np.zeros(n)
 
     for i in range(n):
-        print(f"Game {i+1}/{n}")
+        if verbose:
+            print(f"Game {i+1}/{n}")
         if enable_swap and i > 0:
             trajectory.swap_players()
         trajectory.compute()
