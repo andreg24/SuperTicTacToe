@@ -151,4 +151,4 @@ for i in 1 2 3; do
         2>&1 | tee stdout_run_${i}.txt 
 done
 
-sudo shutdown -h now
+# sudo shutdown -h now
