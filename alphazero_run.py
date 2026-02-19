@@ -142,13 +142,11 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 # 		board = env.board
 def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches, n_processes=2):
 	from rl.agent import AlphaZeroAgent, RandomAgent
-	agent1 = AlphaZeroAgent("player_1", env, model, 1, n_searches=n_searches)
-	agent2 = RandomAgent("player_2", action_mask_enabled=True)
 	# stats = compute_games(env, agent1, agent2, n_matches, enable_swap=False)
 	stats = async_compute_games(
 		env_fn=lambda: ultimatetictactoe.env(render_mode=args.render),
-		agent1=agent1,
-		agent2=agent2,
+		agent1_fn=lambda env: AlphaZeroAgent("player_1", env, model, 1, n_searches=n_searches),
+		agent2_fn=lambda env: RandomAgent("player_2", action_mask_enabled=True),
 		n_games=n_matches,
 		n_processes=n_processes,
 		enable_swap=False

@@ -607,18 +607,35 @@ def compute_games(env, agent1, agent2, n, enable_swap=True, verbose=True):
         "game_turns": game_turns,
     }
 
-def _compute_game_func(env_fn, agent1, agent2, enable_swap=True):
+def _compute_game_func(env_fn, agent1_fn, agent2_fn, enable_swap=True, verbose=True):
 	env = cloudpickle.loads(env_fn)()
-	agent1 = cloudpickle.loads(agent1)
-	agent2 = cloudpickle.loads(agent2)
-	return compute_games(env, agent1, agent2, 1, enable_swap=enable_swap)
+	agent1 = cloudpickle.loads(agent1_fn)(env)
+	agent2 = cloudpickle.loads(agent2_fn)(env)
+	return compute_games(env, agent1, agent2, 1, enable_swap=enable_swap, verbose=verbose)
 
-def async_compute_games(env_fn, agent1, agent2, n_games, n_processes, enable_swap=True, verbose=True):
+def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, enable_swap=True, verbose=True):
 	with mp.Pool(processes=n_processes) as pool:
 		results = pool.starmap(_compute_game_func, [(
 			cloudpickle.dumps(env_fn),
-			cloudpickle.dumps(agent1),
-			cloudpickle.dumps(agent2),
-			enable_swap
+			cloudpickle.dumps(agent1_fn),
+			cloudpickle.dumps(agent2_fn),
+			enable_swap,
+			False
 		) for _ in range(n_games)])
-	return results
+	stats = {
+		"results": [0.0, 0.0, 0.0],
+		"rewards": [],
+		"rewards_count": [],
+		"game_turns": []
+	}
+	for result in results:
+		stats["results"] = [(o1 * len(results) + o2) / len(results)  for o1, o2 in zip(stats["results"], result["results"])]
+		stats["rewards"].extend(result["rewards"])
+		stats["game_turns"].extend(result["game_turns"])
+	print(results)
+
+	rewards, counts = np.unique(stats["rewards"], return_counts=True)
+	stats["rewards_count"] = {
+		r: c for r, c in zip(rewards, counts)
+	}
+	return stats
