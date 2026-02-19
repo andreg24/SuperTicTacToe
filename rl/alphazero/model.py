@@ -73,7 +73,7 @@ class MLP2(nn.Module):
 		self.to(device)
 
 	def forward(self, x):
-		x = x.reshape((9, 9))
+		x = x.reshape((-1, 9, 9))
 		x = self.sub(x)
 		x = x.flatten()
 		x = self.super(x)
