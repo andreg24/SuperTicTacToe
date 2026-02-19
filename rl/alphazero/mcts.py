@@ -94,9 +94,7 @@ class MCTS:
 			value = -reward
 			state_for_next = get_board_perspective(self.env, PERSPECTIVE_OPPONENT)
 			if value == 0 and not termination:
-				start = time.time()
 				priors, value = get_actions_value_prediction(self.env, model)
-				print(f"prediction took {time.time() - start}")
 				node.state = state_for_next
 				node.expand(node.next_player * -1, priors)
 
