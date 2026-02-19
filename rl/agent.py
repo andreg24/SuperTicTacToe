@@ -8,7 +8,13 @@ import torch.nn as nn
 
 from rl.alphazero.mcts import MCTS
 from rl.alphazero.utils import get_board_perspective
-from utils.board_utils import relative_to_absolute
+from utils.board_utils import relative_to_absolute, split_subboards, merge_subboards, Rotation, Reflection
+
+def epsilon_greedy(epsilon: float, probs: torch.Tensor, action_mask: torch.Tensor) -> torch.Tensor:
+
+    unif = action_mask.float()
+    unif = unif / unif.sum(dim=1, keepdim=True).clamp_min(1.0)
+    return (1-epsilon)*probs + epsilon*unif
 
 
 # contracting_net = nn.Sequential(
@@ -29,7 +35,6 @@ from utils.board_utils import relative_to_absolute
 #     nn.Flatten(),
 #     nn.LazyLinear(81),
 # )
-
 
 class SimplePolicy(nn.Module):
     """Network taking in input observations and outputting masked probability distributions for each possible action"""
@@ -106,7 +111,7 @@ class Policy(nn.Module):
             nn.LazyBatchNorm2d(),
             nn.ReLU(),
         )
-        self.final_linear = nn.Sequential(
+        self.main_linear = nn.Sequential(
             nn.Dropout(self.dropout_p) if self.dropout_p > 0 else nn.Identity(),
             nn.Flatten(),
             nn.LazyLinear(500),
@@ -114,19 +119,23 @@ class Policy(nn.Module):
             nn.LazyLinear(81),
         )
 
+        self.final_linear = nn.LazyLinear(81)
+
         self.softmax = nn.Softmax(1)
 
     def forward(self, state: torch.Tensor):
         """state should be tensor of shape (B, 4, 9, 9)"""
-        action_mask = state[:, 2, :, :]
+        action_mask = state[:, 2, :, :] #(B, 9, 9)
         action_mask_final = action_mask.reshape(state.size(0), -1).bool().clone()
         x = state
         x = self.first_conv_net(x)
-        x = self.second_conv_net(x + action_mask)
-        logits = self.final_linear(x + action_mask) # (B, 81)
+        x = self.second_conv_net(x)
+        x = self.main_linear(x) # (B, 81)
+        logits = self.final_linear(x + action_mask.reshape(-1, 81))
 
         masked_logits = logits.masked_fill(~action_mask_final, float("-inf"))
         probs = self.softmax(masked_logits)
+
 
         if self.epsilon > 0:
             unif_probs = torch.zeros_like(probs)
@@ -138,33 +147,47 @@ class Policy(nn.Module):
 class LocalPolicy(nn.Module):
     """Network taking in input observations and outputting masked probability distributions for each possible action"""
 
-    def __init__(self, net=None, epsilon=0.1, dropout_p=0.1, Activation=nn.SiLU()):
+    def __init__(
+        self,
+            # net: Optional[nn.Module] = None,
+            epsilon: float = 0.1, # exploration rate in epsilon-greedy setting
+            dropout_p: float = 0.1,
+            Activation: torch.nn.functional = nn.ReLU()
+        ) -> None:
         super(LocalPolicy, self).__init__()
+
         self.epsilon = epsilon
         self.dropout_p = dropout_p
         self.Activation = Activation
+        self.epsilon_enabled = True
 
-        #TODO
+        # net for subboards
         self.local_conv_net = nn.Sequential(
             nn.Conv2d(4, 4, 3, padding=1),
-            nn.LazyBatchNorm2d(),
             self.Activation,
             nn.LazyConv2d(8, 3, padding=1),
-            nn.LazyBatchNorm2d(),
             self.Activation,
             nn.LazyConv2d(16, 3, padding=1),
-            nn.LazyBatchNorm2d(),
             self.Activation,
         )
+
+        self.parallel_net = nn.Sequential(
+            nn.Conv2d(4, 4, 3, padding=1),
+            self.Activation,
+            nn.LazyConv2d(8, 3, padding=1),
+            self.Activation,
+            nn.LazyConv2d(16, 3, padding=1),
+            self.Activation,
+        )
+
         self.global_conv_net = nn.Sequential(
-            nn.LazyConv2d(32, 5, padding=2),
-            nn.LazyBatchNorm2d(),
+            nn.LazyConv2d(32, 7, padding=3),
             self.Activation,
             nn.Dropout(self.dropout_p) if self.dropout_p > 0 else nn.Identity(),
-            nn.LazyConv2d(64, 7, padding=3),
-            nn.LazyBatchNorm2d(),
+            nn.LazyConv2d(64, 9, padding=4),
             self.Activation,
         )
+
         self.final_linear = nn.Sequential(
             nn.Dropout(self.dropout_p) if self.dropout_p > 0 else nn.Identity(),
             nn.Flatten(),
@@ -177,28 +200,31 @@ class LocalPolicy(nn.Module):
 
     def forward(self, state: torch.Tensor):
         """state should be tensor of shape (B, 4, 9, 9)"""
-        action_mask = state[:, 2, :, :]
-        action_mask_final = action_mask.reshape(state.size(0), -1).bool().clone()
+        B, C_in, _, _ = state.shape
 
-        local_feats = []
-        for i in range(3):
-            for j in range(3):
-                local = state[:, :, 3*i:3*(i+1), 3*j, 3*(j+1)]
-                feat = self.local_conv_net(local)
-                local_feats.append(feat)
-        x = torch.stack(local_feats, dim=1).view(1, 3, 3, 16, 3, 3)
-        x = x.permute(0, 3, 1, 4, 2, 5).reshape(1, 16, 9, 9)
-        x = self.global_conv_net(x + action_mask)
-        logits = self.final_linear(x + action_mask) # (B, 81)
+        mask_9x9 = state[:, 2].bool()
+        mask_81 = mask_9x9.reshape(B, -1).clone()
+        # subboards
+        sub = split_subboards(state).view(B*9, C_in, 3, 3)
+        sub_feat = self.local_conv_net(sub)
+        C_out = sub_feat.size(1)
+        sub_feat = sub_feat.view(B, 9, C_out, 3, 3)
 
-        masked_logits = logits.masked_fill(~action_mask_final, float("-inf"))
+        x = merge_subboards(sub_feat) # (B, C_out, 9, 9)
+
+        par = self.parallel_net(state)
+
+        x = torch.cat([x, par], dim=1)
+
+        x = self.global_conv_net(x)
+
+        logits = self.final_linear(x)
+
+        masked_logits = logits.masked_fill(~mask_81, float("-inf"))
         probs = self.softmax(masked_logits)
 
         if self.epsilon > 0:
-            unif_probs = torch.zeros_like(probs)
-            unif_probs[action_mask_final] = 1.0
-            unif_probs = unif_probs / unif_probs.sum(dim=1, keepdim=True)
-            probs = (1 - self.epsilon) * probs + self.epsilon * unif_probs
+            probs = epsilon_greedy(self.epsilon, probs, mask_81)
         return probs
 
 
@@ -238,7 +264,7 @@ class RandomAgent(BaseAgent):
         super().__init__(name)
         self.action_mask_enabled = action_mask_enabled
 
-    def pick_action(self, state):
+    def pick_action(self, state, *args, **kwargs):
         if not self.action_mask_enabled:
             action = np.random.randint(0, 81)
         else:
@@ -254,7 +280,7 @@ class ManualAgent(BaseAgent):
     def __init__(self, name):
         super().__init__(name)
 
-    def pick_action(self, state):
+    def pick_action(self, state, *args, **kwargs):
         action = input("insert position: ")
         super_pos, sub_pos = action.split(" ")
         super_pos = int(super_pos)
@@ -320,7 +346,7 @@ class NeuralAgent(BaseAgent):
         self.device = device if device is not None else torch.device("cpu")
         self.mode = mode
 
-    def pick_action(self, state: torch.Tensor):
+    def pick_action(self, state: torch.Tensor, rotation: Optional[Rotation] = None, reflection: Optional[Reflection] = None):
         """
         Obs is a (B, 3, 9, 9) tensor, where
         the first two channels are the players moves on the board
@@ -328,13 +354,39 @@ class NeuralAgent(BaseAgent):
         """
 
         state_tensor = state_to_tensor(state)
-            
 
-        probs = self.policy_net(state_tensor)
+        if rotation is not None and reflection is not None:
+            state_tensor_trans = reflection.transform_batch(rotation.transform_batch(state_tensor))
+        elif rotation is not None:
+            state_tensor_trans = rotation.transform_batch(state_tensor)
+        elif reflection is not None:
+            state_tensor_trans = reflection.transform_batch(state_tensor)
+        else:
+            state_tensor_trans = state_tensor
+
+
+        probs_trans = self.policy_net(state_tensor_trans)
+
+        if rotation is not None and reflection is not None:
+            probs = rotation.inverse_transform_batch(reflection.inverse_transform_batch(probs_trans.reshape(-1, 9, 9))).reshape(-1, 81)
+        elif rotation is not None:
+            probs = rotation.inverse_transform_batch(probs_trans.reshape(-1, 9, 9)).reshape(-1, 81)
+        elif reflection is not None:
+            probs = reflection.inverse_transform_batch(probs_trans.reshape(-1, 9, 9)).reshape(-1, 81)
+        else:
+            probs = probs_trans
+
+        mask_trans = state_tensor_trans[:, 2].bool().reshape(probs_trans.size(0), -1)
+        assert (probs_trans[~mask_trans] == 0).all(), "policy outputs illegal mass in transformed frame"
+
+        mask_orig = state_tensor[:, 2].bool().reshape(probs.size(0), -1)
+        assert (probs[~mask_orig] == 0).all(), "inverse-transform misaligned with original mask"
+
+        
+
 
         if self.force_mask:
             # TODO
-            # probs[2] = 
             pass
 
         dist = torch.distributions.Categorical(probs)

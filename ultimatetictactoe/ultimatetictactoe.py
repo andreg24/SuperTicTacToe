@@ -9,6 +9,7 @@ import numpy as np
 import pygame
 from gymnasium import spaces
 from gymnasium.utils import EzPickle
+import torch
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import AgentSelector, wrappers
