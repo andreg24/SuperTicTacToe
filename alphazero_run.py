@@ -191,7 +191,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--train", action="store_true", default=False)
 	parser.add_argument("--eval", action="store_true", default=False)
-	parser.add_argument("--model", action="store", default="mlp", choices=["mlp", "resnet"])
+	parser.add_argument("--model", action="store", default="resnet", choices=["mlp", "resnet"])
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
