@@ -39,6 +39,64 @@ class MLP(nn.Module):
 		return pi.data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 
 
+class MLP2(nn.Module):
+	def __init__(self, device, board_size=81, sub_board_size=9, action_size=81):
+		super(MLP2, self).__init__()
+		self.device = device
+		self.board_size = board_size
+		self.sub_board_size = sub_board_size
+
+		self.sub = nn.Sequential(
+			nn.Linear(sub_board_size, 32),
+			# nn.LayerNorm(32),
+			nn.ReLU(),
+			nn.Linear(32, 64),
+			# nn.BatchNorm2d(64),
+			nn.ReLU()
+		)
+
+		self.super = nn.Sequential(
+			nn.Linear(64 * 9, 128 * 9),
+			# nn.LayerNorm(128 * 9),
+			nn.ReLU(),
+			# nn.Dropout(),
+			nn.Linear(128 * 9, 256 * 9),
+			# nn.LayerNorm(256 * 9),
+			nn.ReLU(),
+			# nn.Dropout(),
+			nn.Linear(256 * 9, 256),
+			nn.ReLU()
+		)
+
+		self.action_head = nn.Linear(in_features=256, out_features=action_size)
+		self.value_head = nn.Linear(in_features=256, out_features=1)
+
+		self.to(device)
+
+	def forward(self, x):
+		x = x.reshape((-1, self.sub_board_size, self.sub_board_size))
+		x = self.sub(x)
+		x = x.reshape((-1, self.sub_board_size * 64))
+		# print(x.shape)
+		x = self.super(x)
+
+		action_logits = self.action_head(x)
+		value_logits = self.value_head(x)
+
+		return F.softmax(action_logits, dim=-1), torch.tanh(value_logits)
+
+	def predict(self, board):
+		board = torch.FloatTensor(
+			board.astype(np.float32)
+		).to(self.device).view(1, self.board_size)
+		self.eval()
+		
+		with torch.no_grad():
+			pi, v = self.forward(board)
+
+		return pi.data.cpu().numpy()[0], v.data.cpu().numpy()[0]
+
+
 class ResNet(nn.Module):
 	def __init__(self, device, n_hidden=64, n_resnet_blocks=4, board_rows=9, board_cols=9, action_size=81):
 		super(ResNet, self).__init__()

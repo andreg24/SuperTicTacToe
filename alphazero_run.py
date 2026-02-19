@@ -15,10 +15,10 @@ import multiprocessing as mp
 mp.set_start_method("spawn", force=True)
 
 from ultimatetictactoe import ultimatetictactoe
-from rl.alphazero.model import MLP, ResNet
+from rl.alphazero.model import MLP, MLP2, ResNet
 from rl.alphazero.mcts import MCTS
 from rl.alphazero.utils import get_board_perspective
-from rl.independent_algo.reinforce import compute_games
+from rl.agent import compute_games, async_compute_games
 
 
 def episode(env: ultimatetictactoe.env, model, n_searches):
@@ -76,10 +76,10 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, model_out=None):
 	stats = []
 	best = float("inf"), float("inf")
-	for i in range(1, n_iters + 1):
-		print(f"Iteration {i}/{n_iters}")
+	with mp.Pool(processes=n_processes) as pool:
+		for i in range(1, n_iters + 1):
+			print(f"Iteration {i}/{n_iters}")
 
-		with mp.Pool(processes=n_processes) as pool:
 			results = pool.starmap(episode_async, [
 				(
 					cloudpickle.dumps(env_fn),
@@ -87,18 +87,18 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 					n_searches
 				) for _ in range(n_episodes)
 			])
-		
-		samples = []
-		for ep_samples in results:
-			samples.extend(ep_samples)
-		random.shuffle(samples)
-		# print("All episodes executed. Training...")
-		loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
-		if loss_pi < best[0] and loss_v < best[1]:
-			best = (loss_pi, loss_v)
-			if model_out:
-				torch.save(model.state_dict(), model_out)
-		stats.append((loss_pi, loss_v))
+			
+			samples = []
+			for ep_samples in results:
+				samples.extend(ep_samples)
+			random.shuffle(samples)
+			# print("All episodes executed. Training...")
+			loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
+			if loss_pi < best[0] and loss_v < best[1]:
+				best = (loss_pi, loss_v)
+				if model_out:
+					torch.save(model.state_dict(), model_out)
+			stats.append((loss_pi, loss_v))
 		# print()
 	return stats
 
@@ -140,11 +140,17 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 		
 # 		current_player *= -1
 # 		board = env.board
-def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches):
+def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches, n_processes=2):
 	from rl.agent import AlphaZeroAgent, RandomAgent
-	agent1 = AlphaZeroAgent("player_1", env, model, 1, n_searches=n_searches)
-	agent2 = RandomAgent("player_2", action_mask_enabled=True)
-	stats = compute_games(env, agent1, agent2, n_matches, enable_swap=False)
+	# stats = compute_games(env, agent1, agent2, n_matches, enable_swap=False)
+	stats = async_compute_games(
+		env_fn=lambda: ultimatetictactoe.env(render_mode=args.render),
+		agent1_fn=lambda env: AlphaZeroAgent("player_1", env, model, 1, n_searches=n_searches),
+		agent2_fn=lambda env: RandomAgent("player_2", action_mask_enabled=True),
+		n_games=n_matches,
+		n_processes=n_processes,
+		enable_swap=False
+	)
 	print(stats)
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
@@ -191,7 +197,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--train", action="store_true", default=False)
 	parser.add_argument("--eval", action="store_true", default=False)
-	parser.add_argument("--model", action="store", default="mlp", choices=["mlp", "resnet"])
+	parser.add_argument("--model", action="store", default="mlp2", choices=["mlp1", "mlp2", "resnet"])
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
@@ -221,8 +227,10 @@ if __name__ == "__main__":
 		sys.exit("Evaluation requires --n_matches to be specified.")
 
 	env = ultimatetictactoe.env(render_mode=args.render)
-	if args.model == "mlp":
+	if args.model == "mlp1":
 		model = MLP(torch.device(args.device))
+	elif args.model == "mlp2":
+		model = MLP2(torch.device(args.device))
 	elif args.model == "resnet":
 		model = ResNet(torch.device(args.device))
 	else:
@@ -260,5 +268,5 @@ if __name__ == "__main__":
 		# 	if _eval(env, model) > 0:
 		# 		wins += 1
 		# 	total += 1
-		_eval(env, model, args.n_matches, args.n_searches)
+		_eval(env, model, args.n_matches, args.n_searches, n_processes=args.n_processes)
 		# print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")
