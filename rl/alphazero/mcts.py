@@ -73,10 +73,7 @@ class MCTS:
 		priors, value = get_actions_value_prediction(self.env, model)
 		root.expand(current_player * -1, priors)
 
-		start = 0
 		for _ in range(self.n_searches):
-			print(f"search iteration took {time.time() - start}")
-			start = time.time()
 			self.env.reset(options=dict(board=board, next_player=current_player))
 
 			# Start each search iteration from the root node and initialize
