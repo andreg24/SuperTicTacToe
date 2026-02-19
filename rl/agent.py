@@ -117,6 +117,7 @@ class Policy(nn.Module):
             nn.LazyLinear(500),
             nn.ReLU(),
             nn.LazyLinear(81),
+            nn.ReLU(),
         )
 
         self.final_linear = nn.LazyLinear(81)
@@ -159,7 +160,6 @@ class LocalPolicy(nn.Module):
         self.epsilon = epsilon
         self.dropout_p = dropout_p
         self.Activation = Activation
-        self.epsilon_enabled = True
 
         # net for subboards
         self.local_conv_net = nn.Sequential(
@@ -322,7 +322,9 @@ class NeuralAgent(BaseAgent):
         name: str,
         epsilon: float = 0.1,
         learning_power: int = 2,
+        learning_const: float = 1.0,
         exploration_power: int = 6,
+        exploration_const: float = 1.0,
         policy_net: Optional[nn.Module] = None,
         force_mask: bool = True,
         optimizer: Optional[torch.optim.Optimizer] = None,
@@ -333,13 +335,13 @@ class NeuralAgent(BaseAgent):
         self.policy_net = (
             policy_net
             if policy_net is not None
-            else Policy(epsilon=epsilon**exploration_power)
+            else Policy(epsilon=exploration_const*epsilon**exploration_power)
         )
         self.optimizer = (
             optimizer
             if optimizer is not None
             else torch.optim.SGD(
-                self.policy_net.parameters(), lr=epsilon**learning_power
+                self.policy_net.parameters(), lr=learning_const*epsilon**learning_power
             )
         )
         self.force_mask = force_mask

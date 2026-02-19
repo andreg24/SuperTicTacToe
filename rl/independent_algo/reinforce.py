@@ -5,6 +5,7 @@ import os
 import datetime
 import tqdm
 import random
+import pickle
 import numpy as np
 
 import torch
@@ -265,9 +266,15 @@ def reinforce(
         
         if validation_rate is not None:
             if ep != 0 and ep%validation_rate == 0 or ep == num_episodes-1:
-                res_12.append(compute_games(env, agent1=agent_1, agent2=agent_2, n=25, verbose=False))
-                res_1r.append(compute_games(env, agent1=agent_1, agent2=ar, n=25, verbose=False))
-                res_12.append(compute_games(env, agent1=agent_2, agent2=ar, n=25, verbose=False))
+                res_12.append(compute_games(env, agent1=agent_1, agent2=agent_2, n=200, verbose=False))
+                res_1r.append(compute_games(env, agent1=agent_1, agent2=ar, n=200, verbose=False))
+                res_2r.append(compute_games(env, agent1=agent_2, agent2=ar, n=200, verbose=False))
+            
+    if validation_rate is not None:
+        res = (agent_1_losses, agent_2_losses, res_12, res_1r, res_2r)
+        with open(checkpoint_folder+'res.pkl', 'wb') as file:
+            pickle.dump(res, file)
+
     return agent_1_losses, agent_2_losses, res_12, res_1r, res_2r
 
 
