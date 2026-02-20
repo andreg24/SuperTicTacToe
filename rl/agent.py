@@ -544,6 +544,9 @@ class NeuralAgent(BaseAgent):
     
     def train(self):
         self.policy_net.train()
+    
+    def load(self, weights_path):
+        self.policy_net.load_state_dict(torch.load(weights_path))
 
 
 class AlphaZeroAgent(BaseAgent):
