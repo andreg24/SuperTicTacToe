@@ -519,13 +519,6 @@ class NeuralAgent(BaseAgent):
         mask_orig = state_tensor[:, 2].bool().reshape(probs.size(0), -1)
         assert (probs[~mask_orig] == 0).all(), "inverse-transform misaligned with original mask"
 
-        
-
-
-        if self.force_mask:
-            # TODO
-            pass
-
         dist = torch.distributions.Categorical(probs)
         if self.mode == 'sample':
             action = dist.sample()
@@ -547,6 +540,9 @@ class NeuralAgent(BaseAgent):
     
     def load(self, weights_path):
         self.policy_net.load_state_dict(torch.load(weights_path))
+
+    def disable_epsilon(self, value: bool = False):
+        self.policy_net.disable_epsilon = value
 
 
 class AlphaZeroAgent(BaseAgent):
