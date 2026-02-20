@@ -73,7 +73,7 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
-def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, model_out=None):
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, save_model=False, save_intermediate=False):
 	stats = []
 	best = float("inf"), float("inf")
 	with mp.Pool(processes=n_processes) as pool:
@@ -93,11 +93,19 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 				samples.extend(ep_samples)
 			random.shuffle(samples)
 			# print("All episodes executed. Training...")
-			loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)
+			loss_pi, loss_v = train_model(model, samples, n_epochs, batch_size)	
+			if save_model and save_intermediate:
+				torch.save(
+					model.state_dict(),
+					f"local/ckpt_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_{i}.pt"
+				)
 			if loss_pi < best[0] and loss_v < best[1]:
 				best = (loss_pi, loss_v)
-				if model_out:
-					torch.save(model.state_dict(), model_out)
+				if save_model:
+					torch.save(
+						model.state_dict(),
+						f"local/ckpt_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_best.pt"
+					)
 			stats.append((loss_pi, loss_v))
 		# print()
 	return stats
@@ -151,7 +159,7 @@ def _eval(env: ultimatetictactoe.env, model, n_matches, n_searches, n_processes=
 		n_processes=n_processes,
 		enable_swap=False
 	)
-	print(stats)
+	print(stats["results"])
 
 def train_model(model, samples, n_epochs=1, batch_size=32):
 	optimizer = optim.Adam(model.parameters(), lr=5e-4)
@@ -198,6 +206,8 @@ if __name__ == "__main__":
 	parser.add_argument("--train", action="store_true", default=False)
 	parser.add_argument("--eval", action="store_true", default=False)
 	parser.add_argument("--model", action="store", default="mlp2", choices=["mlp1", "mlp2", "resnet"])
+	parser.add_argument("--save", action="store_true", default=False)
+	parser.add_argument("--save_intermediate", action="store_true", default=False)
 	parser.add_argument("--n_iters", "-i", action="store", type=int, default=0)
 	parser.add_argument("--n_episodes", "-s", action="store", type=int, default=0)
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
@@ -254,7 +264,8 @@ if __name__ == "__main__":
 			n_searches=args.n_searches,
 			batch_size=args.batch,
 			n_processes=args.n_processes,
-			model_out=args.checkpoint
+			save_model=args.save,
+			save_intermediate=args.save_intermediate
 		)
 		with open("local/training_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%s") + ".csv", "w") as f:
 			f.write("loss_pi,loss_v\n")

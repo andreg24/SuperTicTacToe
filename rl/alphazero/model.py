@@ -48,23 +48,23 @@ class MLP2(nn.Module):
 
 		self.sub = nn.Sequential(
 			nn.Linear(sub_board_size, 32),
-			# nn.LayerNorm(32),
+			nn.LayerNorm(32),
 			nn.ReLU(),
 			nn.Linear(32, 64),
-			# nn.BatchNorm2d(64),
+			nn.LayerNorm(64),
 			nn.ReLU()
 		)
 
 		self.super = nn.Sequential(
-			nn.Linear(64 * 9, 128 * 9),
-			# nn.LayerNorm(128 * 9),
+			nn.Linear(64 * 9, 512),
+			nn.LayerNorm(512),
 			nn.ReLU(),
 			# nn.Dropout(),
-			nn.Linear(128 * 9, 256 * 9),
-			# nn.LayerNorm(256 * 9),
+			nn.Linear(512, 256),
+			nn.LayerNorm(256),
 			nn.ReLU(),
 			# nn.Dropout(),
-			nn.Linear(256 * 9, 256),
+			nn.Linear(256, 256),
 			nn.ReLU()
 		)
 

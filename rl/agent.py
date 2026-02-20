@@ -632,7 +632,6 @@ def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, enab
 		stats["results"] = [(o1 * len(results) + o2) / len(results)  for o1, o2 in zip(stats["results"], result["results"])]
 		stats["rewards"].extend(result["rewards"])
 		stats["game_turns"].extend(result["game_turns"])
-	print(results)
 
 	rewards, counts = np.unique(stats["rewards"], return_counts=True)
 	stats["rewards_count"] = {
