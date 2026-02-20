@@ -222,6 +222,7 @@ class Policy(nn.Module):
         super(Policy, self).__init__()
         self.epsilon = epsilon
         self.dropout_p = dropout_p
+        self.disable_epsilon = False
         #TODO
         self.first_conv_net = nn.Sequential(
             nn.Conv2d(4, 8, 3, padding=1),
@@ -267,7 +268,7 @@ class Policy(nn.Module):
         probs = self.softmax(masked_logits)
 
 
-        if self.epsilon > 0:
+        if self.epsilon > 0 and not self.disable_epsilon:
             unif_probs = torch.zeros_like(probs)
             unif_probs[action_mask_final] = 1.0
             unif_probs = unif_probs / unif_probs.sum(dim=1, keepdim=True)
@@ -460,6 +461,11 @@ class NeuralAgent(BaseAgent):
         device: Optional[torch.device] = None,
         mode: str = "sample",
     ) -> None:
+        self.epsilon = epsilon
+        self.learning_power = learning_power
+        self.learning_const = learning_const
+        self.exploration_power = exploration_power
+        self.exploration_const = exploration_const
         super().__init__(name)
         self.policy_net = (
             policy_net
@@ -560,10 +566,15 @@ class AlphaZeroAgent(BaseAgent):
 		return dict(action=action)
 
 
-def compute_games(env, agent1, agent2, n, enable_swap=True, verbose=True):
+def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, enable_swap=True, verbose=True):
     """Returns stats for n games played between the two agents"""
     agent1.eval()
     agent2.eval()
+
+    if isinstance(agent1, NeuralAgent):
+        agent1.policy_net.disable_epsilon = True
+    if isinstance(agent2, NeuralAgent):
+        agent2.policy_net.disable_epsilon = True
 
     trajectory = Trajectory(env, agent1, agent2)
 
@@ -601,6 +612,11 @@ def compute_games(env, agent1, agent2, n, enable_swap=True, verbose=True):
     # normalize rewards count
     for reward in rewards_count.keys():
         rewards_count[reward] *= 100/n
+    
+    if isinstance(agent1, NeuralAgent):
+        agent1.policy_net.disable_epsilon = False
+    if isinstance(agent2, NeuralAgent):
+        agent2.policy_net.disable_epsilon = False
 
     return {
         "results": results * 100 / n,
