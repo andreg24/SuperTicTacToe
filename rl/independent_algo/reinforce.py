@@ -5,6 +5,7 @@ import os
 import datetime
 import tqdm
 import random
+import pickle
 import numpy as np
 
 import torch
@@ -12,7 +13,7 @@ import torch
 from utils.board import TRANSFORMATIONS
 from utils.board_utils import Rotation, Reflection
 from .algo_utils import format_datetime
-from rl.agent import RandomAgent
+from rl.agent import RandomAgent, compute_games, Trajectory, NeuralAgent
 
 
 def generate_schedule(n, px, pt, max_semi_turn=15):
@@ -62,13 +63,29 @@ def reinforce(
     checkpoint_rate: Optional[int] = None,
     experiment_name: Optional[str] = None,
     validation_rate: Optional[int] = None,
+    weights_path: Optional[str] = "",
+    weights_name: Optional[str] = "",
     device: torch.device = torch.device("cpu")
 ) -> None:
     
     agent_1_losses = []
     agent_2_losses = []
+
+    if weights_path is not None:
+        agent_1.policy_net.load_state_dict(torch.load(weights_path + "/agent_1/" + weights_name))
+        agent_2.policy_net.load_state_dict(torch.load(weights_path + "/agent_2/" + weights_name))
     
     if checkpoint_rate is not None:
+        # save parameters
+        param_values = locals().copy()
+        # remove objects you don't want to serialize/store directly
+        param_values.pop("agent_1", None)
+        param_values.pop("agent_2", None)
+        param_values.pop("env", None)
+        param_values.pop("agent_1_losses", None)
+        param_values.pop("agent_2_losses", None)
+        param_values.pop("experiment_name", None)
+
         datetime_string = format_datetime(str(datetime.datetime.now()))
         if experiment_name is None:
             experiment_name = datetime_string
@@ -78,6 +95,26 @@ def reinforce(
             os.makedirs(checkpoint_folder + "/agent_1", exist_ok=True)
         if update2:
             os.makedirs(checkpoint_folder + "/agent_2", exist_ok=True)
+
+
+        # add selected agent hyperparameters
+        for prefix, agent in [("agent_1", agent_1), ("agent_2", agent_2)]:
+            param_values.update({
+                f"{prefix}_epsilon": agent.epsilon,
+                f"{prefix}_learning_power": agent.learning_power,
+                f"{prefix}_learning_const": agent.learning_const,
+                f"{prefix}_exploration_power": agent.exploration_power,
+                f"{prefix}_exploration_const": agent.exploration_const,
+            })
+        param_values.update({
+            "agent_1": str(agent_1.policy_net),
+            "agent_2": str(agent_2.policy_net)
+        })
+        
+        with open(checkpoint_folder+'/params.pkl', 'wb') as file:
+            pickle.dump(param_values, file)
+
+
     
     if validation_rate is not None:
         res_12 = []
@@ -99,6 +136,11 @@ def reinforce(
             agent_1.train()
         if update2:
             agent_2.train()
+
+        if isinstance(agent_2, NeuralAgent):
+            agent_1.policy_net.disable_epsilon = False
+        if isinstance(agent_2, NeuralAgent):
+            agent_2.policy_net.disable_epsilon = False
 
 
         # swap players at each epoch
@@ -140,7 +182,12 @@ def reinforce(
         
         if validation_rate is not None:
             if ep != 0 and ep%validation_rate == 0 or ep == num_episodes-1:
-                res_12.append(compute_games(env, agent1=agent_1, agent2=agent_2, n=25, verbose=False))
-                res_1r.append(compute_games(env, agent1=agent_1, agent2=ar, n=25, verbose=False))
-                res_12.append(compute_games(env, agent1=agent_2, agent2=ar, n=25, verbose=False))
+                res_12.append(compute_games(env, agent1=agent_1, agent2=agent_2, n=200, verbose=False))
+                res_1r.append(compute_games(env, agent1=agent_1, agent2=ar, n=200, verbose=False))
+                res_2r.append(compute_games(env, agent1=agent_2, agent2=ar, n=200, verbose=False))
+            
+            res = (agent_1_losses, agent_2_losses, res_12, res_1r, res_2r)
+            with open(checkpoint_folder+'/es.pkl', 'wb') as file:
+                pickle.dump(res, file)
+
     return agent_1_losses, agent_2_losses, res_12, res_1r, res_2r
