@@ -560,7 +560,7 @@ class AlphaZeroAgent(BaseAgent):
 
 	def pick_action(self, state, *args):
 		board = self.env.board
-		root, action_probs = self.mcts.run(self.model, self.player * -1, board)
+		root, action_probs = self.mcts.run(self.model, self.player, board)
 		action = np.argmax(action_probs)
 		self.env.reset(options={
 			"board": board,

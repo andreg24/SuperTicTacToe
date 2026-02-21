@@ -98,7 +98,7 @@ class MLP2(nn.Module):
 
 
 class ResNet(nn.Module):
-	def __init__(self, device, n_hidden=64, n_resnet_blocks=4, board_rows=9, board_cols=9, action_size=81):
+	def __init__(self, device, n_hidden=32, n_resnet_blocks=1, board_rows=9, board_cols=9, action_size=81):
 		super(ResNet, self).__init__()
 		self.start = nn.Sequential(
 			nn.Conv2d(3, n_hidden, kernel_size=3, padding=1),

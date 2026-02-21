@@ -55,6 +55,7 @@ def episode(env: ultimatetictactoe.env, model, n_searches):
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
 def episode_async(env_fn, model, n_searches):
+	warnings.filterwarnings("ignore", category=UserWarning)
 	env = cloudpickle.loads(env_fn)()
 	model = cloudpickle.loads(model)
 	return episode(env, model, n_searches)
@@ -76,6 +77,7 @@ def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_s
 def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, save_model=False, save_intermediate=False):
 	stats = []
 	best = float("inf"), float("inf")
+	timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 	with mp.Pool(processes=n_processes) as pool:
 		for i in range(1, n_iters + 1):
 			print(f"Iteration {i}/{n_iters}")
@@ -97,14 +99,14 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 			if save_model and save_intermediate:
 				torch.save(
 					model.state_dict(),
-					f"local/ckpt_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_{i}.pt"
+					f"local/ckpt_{timestamp}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_{i}.pt"
 				)
 			if loss_pi < best[0] and loss_v < best[1]:
 				best = (loss_pi, loss_v)
 				if save_model:
 					torch.save(
 						model.state_dict(),
-						f"local/ckpt_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_best.pt"
+						f"local/ckpt_{timestamp}_i{n_iters}_s{n_episodes}_t{n_searches}_e{n_epochs}_best.pt"
 					)
 			stats.append((loss_pi, loss_v))
 		# print()
