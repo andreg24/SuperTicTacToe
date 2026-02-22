@@ -129,13 +129,17 @@ class MinMaxQAgent(BaseAgent):
 
 		q_all = self.q_network(states)
 		q_sa = q_all.gather(1, actions.unsqueeze(1)).squeeze(1)
-
+		
+		# MinMax Policy implementation
 		with torch.no_grad():
 			if self.use_double_dqn:
+				# Chose online actions
 				q_next_online = self.q_network(next_states)
-				q_next_online[~next_masks] = -float('inf')
+				q_next_online[~next_masks] = -float('inf') # Taking away the illigal actions
+
+				# Take the best action
 				best_actions = q_next_online.argmax(dim=1)
-				q_next_target = self.target_network(next_states)
+				q_next_target = self.target_network(next_states) # Evaluate the best action
 				q_next = q_next_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
 			else:
 				q_next = self.target_network(next_states)

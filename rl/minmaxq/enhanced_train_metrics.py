@@ -7,6 +7,9 @@ import torch
 import numpy as np
 import sys
 import os
+import matplotlib
+matplotlib.use('Agg')  
+import matplotlib.pyplot as plt
 from collections import defaultdict
 
 # Aggiungi path solo se necessario
@@ -223,11 +226,7 @@ def evaluate_detailed(env, agent, num_episodes=100):
 	agent.mode = original_mode
 	return metrics
 
-
-# ==========================================
-# MODIFICHE A train.py
-# ==========================================
-
+# Train.py modification
 def enhanced_train_minmaxq(
 	env,
 	agent1,
@@ -241,9 +240,6 @@ def enhanced_train_minmaxq(
 	eval_freq=500,
 	eval_episodes=20,
 ):
-	"""
-	Enhanced training loop with comprehensive metrics.
-	"""
 	from train import ReplayBuffer, EpisodeMemory, play_episode
 	
 	buffer1 = ReplayBuffer(buffer_capacity)
@@ -260,12 +256,12 @@ def enhanced_train_minmaxq(
 		'episode_lengths': [],
 		'losses_1': [],
 		'losses_2': [],
-		'epsilons': [],  # NEW
-		'q_value_stats': [],  # NEW
-		'gradient_norms': [],  # NEW
+		'epsilons': [], 
+		'q_value_stats': [],  
+		'gradient_norms': [],  
 		'eval_win_rates': [],
 		'eval_episodes_list': [],
-		'eval_detailed': [],  # NEW
+		'eval_detailed': [],  
 	}
 	
 	total_steps = 0
@@ -358,23 +354,14 @@ def enhanced_train_minmaxq(
 	
 	return stats, tracker
 
-
-# ==========================================
-# PLOTTING ENHANCEMENTS
-# ==========================================
-
 def plot_enhanced_stats(stats, save_path=None):
 	"""
 	Create comprehensive visualization of training.
-	"""
-	import matplotlib
-	matplotlib.use('Agg')  # ← QUESTA SALVA TUTTO
-	import matplotlib.pyplot as plt
-	
+	"""	
 	fig = plt.figure(figsize=(20, 12))
 	gs = fig.add_gridspec(3, 3, hspace=0.3, wspace=0.3)
 	
-	# 1. Episode Rewards
+	# Episode Rewards
 	ax1 = fig.add_subplot(gs[0, 0])
 	ax1.plot(stats['episode_rewards_1'], alpha=0.3, label='Agent 1')
 	ax1.plot(stats['episode_rewards_2'], alpha=0.3, label='Agent 2')
@@ -390,7 +377,7 @@ def plot_enhanced_stats(stats, save_path=None):
 	ax1.legend()
 	ax1.grid(True, alpha=0.3)
 	
-	# 2. Episode Lengths
+	# Episode Lengths
 	ax2 = fig.add_subplot(gs[0, 1])
 	ax2.plot(stats['episode_lengths'], alpha=0.4)
 	if len(stats['episode_lengths']) > window:
@@ -401,7 +388,7 @@ def plot_enhanced_stats(stats, save_path=None):
 	ax2.set_ylabel('Turns')
 	ax2.grid(True, alpha=0.3)
 	
-	# 3. Epsilon Decay
+	# Epsilon Decay
 	ax3 = fig.add_subplot(gs[0, 2])
 	ax3.plot(stats['epsilons'], 'g-', linewidth=2)
 	ax3.set_title('Epsilon Decay')
@@ -409,7 +396,7 @@ def plot_enhanced_stats(stats, save_path=None):
 	ax3.set_ylabel('Epsilon')
 	ax3.grid(True, alpha=0.3)
 	
-	# 4. Training Loss
+	# Training Loss
 	ax4 = fig.add_subplot(gs[1, 0])
 	if stats['losses_1']:
 		ax4.plot(stats['losses_1'], alpha=0.5, label='Agent 1')
@@ -421,7 +408,7 @@ def plot_enhanced_stats(stats, save_path=None):
 		ax4.legend()
 		ax4.grid(True, alpha=0.3)
 	
-	# 5. Q-Value Statistics
+	# Q-Value Statistics
 	ax5 = fig.add_subplot(gs[1, 1])
 	if stats['q_value_stats']:
 		q_means = [q['q_mean'] for q in stats['q_value_stats']]
@@ -434,7 +421,7 @@ def plot_enhanced_stats(stats, save_path=None):
 		ax5.legend()
 		ax5.grid(True, alpha=0.3)
 	
-	# 6. Gradient Norms
+	# Gradient Norms
 	ax6 = fig.add_subplot(gs[1, 2])
 	if stats['gradient_norms']:
 		ax6.plot(stats['gradient_norms'], alpha=0.5)
@@ -446,7 +433,7 @@ def plot_enhanced_stats(stats, save_path=None):
 		ax6.set_ylabel('Gradient Norm')
 		ax6.grid(True, alpha=0.3)
 	
-	# 7. Win Rates
+	# Win Rates
 	ax7 = fig.add_subplot(gs[2, 0])
 	if stats['eval_detailed']:
 		episodes = stats['eval_episodes_list']
@@ -463,7 +450,7 @@ def plot_enhanced_stats(stats, save_path=None):
 		ax7.legend()
 		ax7.grid(True, alpha=0.3)
 	
-	# 8. Average Turns by Outcome
+	# Average Turns by Outcome
 	ax8 = fig.add_subplot(gs[2, 1])
 	if stats['eval_detailed']:
 		episodes = stats['eval_episodes_list']
@@ -480,7 +467,7 @@ def plot_enhanced_stats(stats, save_path=None):
 		ax8.legend()
 		ax8.grid(True, alpha=0.3)
 	
-	# 9. Strategic Metrics
+	# Strategic Metrics
 	ax9 = fig.add_subplot(gs[2, 2])
 	if stats['eval_detailed']:
 		episodes = stats['eval_episodes_list']
