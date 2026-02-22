@@ -16,7 +16,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
-from agent import MinMaxQAgent, state_to_tensor
+from rl.minmaxq.agent import MinMaxQAgent, state_to_tensor
 
 Experience = namedtuple(
     'Experience',

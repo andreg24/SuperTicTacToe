@@ -12,6 +12,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Optional
+from abc import ABC, abstractmethod
+from rl.agent import BaseAgent
 
 
 class QNetwork(nn.Module):
@@ -47,7 +49,7 @@ def state_to_tensor(state: dict, device: torch.device) -> torch.Tensor:
 	return torch.cat([board, turn], dim=0).unsqueeze(0)
 
 
-class MinMaxQAgent:
+class MinMaxQAgent(BaseAgent):
 	"""
 	MinMaxQ agent with double DQN and true minimax backup.
 	Single network used for both players – the turn channel tells perspective.
@@ -55,7 +57,8 @@ class MinMaxQAgent:
 
 	def __init__(self, name: str, player_id: int, learning_rate: float = 1e-3, gamma: float = 0.99, epsilon_start: float = 1.0,
 		epsilon_end: float = 0.1, epsilon_decay: float = 0.9999, device: Optional[torch.device] = None, mode: str = 'train', use_double_dqn: bool = True,):
-		self.name = name
+		super().__init__(name)
+		# self.name = name
 		self.player_id = player_id
 		self.device = device if device is not None else torch.device('cpu')
 		self.mode = mode
@@ -85,6 +88,14 @@ class MinMaxQAgent:
 		if self.epsilon > self.epsilon_end:
 			self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
 		self.episodes += 1
+
+	def train(self):
+		self.mode = 'train'
+		self.q_network.train()
+
+	def eval(self):
+		self.mode = 'eval'
+		self.q_network.eval()
 
 	def pick_action(self, state: dict) -> dict:
 		state_tensor = state_to_tensor(state, self.device)

@@ -556,7 +556,7 @@ class AlphaZeroAgent(BaseAgent):
 
 	def pick_action(self, state, *args):
 		board = self.env.board
-		root, action_probs = self.mcts.run(self.model, self.player * -1, board)
+		root, action_probs = self.mcts.run(self.model, self.player, board)
 		action = np.argmax(action_probs)
 		self.env.reset(options={
 			"board": board,
@@ -649,7 +649,6 @@ def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, enab
 		stats["results"] = [(o1 * len(results) + o2) / len(results)  for o1, o2 in zip(stats["results"], result["results"])]
 		stats["rewards"].extend(result["rewards"])
 		stats["game_turns"].extend(result["game_turns"])
-	print(results)
 
 	rewards, counts = np.unique(stats["rewards"], return_counts=True)
 	stats["rewards_count"] = {

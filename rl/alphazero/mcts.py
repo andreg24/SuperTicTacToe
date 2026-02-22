@@ -7,12 +7,20 @@ from .utils import _ucb, get_board_perspective
 PERSPECTIVE_SELF = 1
 PERSPECTIVE_OPPONENT = -1
 
-def get_actions_value_prediction(env, model):
+def mask_invalid_actions(env, priors_arr):
+	valid_moves = env.action_mask(env.agent_selection)
+	priors = priors_arr * valid_moves
+	priors /= np.sum(priors)
+	return priors
+
+def get_actions_value_prediction(env, model, apply_mask=True):
 	# priors = np.ones(env.action_space(env.agent_selection).n)
 	priors, value = model.predict(get_board_perspective(env, PERSPECTIVE_SELF))
-	valid_moves = env.action_mask(env.agent_selection)
-	priors *= valid_moves
-	priors /= np.sum(priors)
+	# valid_moves = env.action_mask(env.agent_selection)
+	# priors *= valid_moves
+	# priors /= np.sum(priors)
+	if apply_mask:
+		priors = mask_invalid_actions(env, priors)
 	return {
 		i: p for i, p in enumerate(priors)
 	}, value
@@ -58,10 +66,12 @@ class Node:
 
 
 class MCTS:
-	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128):
+	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128, dirichlet_eps: float = 0.25, dirichlet_alpha: float = 0.05):
 		self.env = env
 		self.env.reset()
 		self.n_searches = n_searches
+		self.dirichlet_eps = dirichlet_eps
+		self.dirichlet_alpha = dirichlet_alpha
 
 	def run(self, model, current_player=1, board=None):
 		# Initialize the root node with a dummy prior and the current player.
@@ -70,7 +80,13 @@ class MCTS:
 			next_player=current_player,
 			state=get_board_perspective(self.env, PERSPECTIVE_SELF)
 		)
-		priors, value = get_actions_value_prediction(self.env, model)
+		priors, value = get_actions_value_prediction(self.env, model, apply_mask=False)
+		noisy_priors = (1 - self.dirichlet_eps) * np.array(list(priors.values())) + self.dirichlet_eps * np.random.dirichlet(
+			[self.dirichlet_alpha] * self.env.action_space(self.env.agent_selection).n
+		)
+		masked_noisy_priors = mask_invalid_actions(self.env, noisy_priors)
+		priors = {a: p for a, p in zip(priors.keys(), masked_noisy_priors)}
+        
 		root.expand(current_player * -1, priors)
 
 		for _ in range(self.n_searches):
