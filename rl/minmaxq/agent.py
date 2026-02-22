@@ -127,7 +127,8 @@ class MinMaxQAgent(BaseAgent):
 
 		q_all = self.q_network(states)
 		q_sa = q_all.gather(1, actions.unsqueeze(1)).squeeze(1)
-
+		
+		# MinMax Policy implementation
 		with torch.no_grad():
 			if self.use_double_dqn:
 				# Chose online actions
