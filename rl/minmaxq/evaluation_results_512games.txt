@@ -13,13 +13,6 @@ REWARDS:
   Agent avg:  +0.6930 ± 0.6712
   Random avg: -0.6930 ± 0.6712
 
-TURNS:
-  Overall avg: 24.63 ± 3.45
-  Range: 14 - 36
-  When winning: 24.16
-  When losing: 26.62
-  When drawing: 28.35
-
 STRATEGIC:
   First move center: 100.00%
 
