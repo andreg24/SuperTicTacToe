@@ -81,8 +81,8 @@ def evaluate_agent_detailed(env, agent, num_games=100, verbose=True):
     
     for game_idx in range(num_games):
         env.reset()
-        action_count = 0  # Count individual actions
-        turn_count = 0    # Count complete turns (both players move)
+        action_count = 0 
+        turn_count = 0   
         first_move = None
         
         agents_dict = {"player_1": agent, "player_2": random_agent}
@@ -186,20 +186,20 @@ def print_evaluation_summary(stats, verbose=True):
     print(f"EVALUATION RESULTS")
     print(f"{'='*60}\n")
     
-    print(f"📊 GAME OUTCOMES (n={stats['total_games']} games)")
+    print(f"GAME OUTCOMES (n={stats['total_games']} games)")
     print(f"  Wins:   {stats['wins']:4d} ({stats['win_rate']:5.1f}%)")
     print(f"  Losses: {stats['losses']:4d} ({stats['loss_rate']:5.1f}%)")
     print(f"  Draws:  {stats['draws']:4d} ({stats['draw_rate']:5.1f}%)")
     
-    print(f"\n💰 AVERAGE REWARDS")
+    print(f"\nAVERAGE REWARDS")
     print(f"  Agent:  {stats['avg_reward_agent']:+.3f} ± {stats['std_reward_agent']:.3f}")
     print(f"  Random: {stats['avg_reward_random']:+.3f} ± {stats['std_reward_random']:.3f}")
     
-    print(f"\n⏱️  AVERAGE NUMBER OF TURNS")
+    print(f"\nAVERAGE NUMBER OF TURNS")
     print(f"  All games:  {stats['avg_turns_all']:.1f} ± {stats['std_turns_all']:.1f} turns")
     print(f"  Range:      {stats['min_turns']:.0f} - {stats['max_turns']:.0f} turns")
     
-    print(f"\n📈 TURNS BY OUTCOME")
+    print(f"\nTURNS BY OUTCOME")
     if stats['avg_turns_win'] is not None:
         print(f"  When winning:  {stats['avg_turns_win']:.1f} turns (avg)")
     if stats['avg_turns_loss'] is not None:
@@ -207,7 +207,7 @@ def print_evaluation_summary(stats, verbose=True):
     if stats['avg_turns_draw'] is not None:
         print(f"  When drawing:  {stats['avg_turns_draw']:.1f} turns (avg)")
     
-    print(f"\n🎯 STRATEGIC BEHAVIOR")
+    print(f"\nSTRATEGIC BEHAVIOR")
     print(f"  First move center: {stats['first_move_center_rate']:.1f}%")
     print(f"  (Random baseline: 1.23%)")
     
@@ -215,19 +215,19 @@ def print_evaluation_summary(stats, verbose=True):
     
     # Interpretation
     if stats['win_rate'] > 70:
-        print("✅ EXCELLENT: Agent performs significantly above random baseline!")
+        print("EXCELLENT: Agent performs significantly above random baseline!")
     elif stats['win_rate'] > 50:
         print("✓ GOOD: Agent outperforms random opponent.")
     elif stats['win_rate'] > 40:
-        print("⚠️  FAIR: Agent slightly better than random.")
+        print("FAIR: Agent slightly better than random.")
     else:
-        print("❌ POOR: Agent needs more training.")
+        print("POOR: Agent needs more training.")
     
     if stats['avg_turns_win'] and stats['avg_turns_loss']:
         if stats['avg_turns_win'] < stats['avg_turns_loss']:
-            print("✅ Agent plays efficiently: wins quickly, loses slowly (defensive)")
+            print("Agent plays efficiently: wins quickly, loses slowly (defensive)")
         else:
-            print("⚠️  Agent wins take longer than losses")
+            print("Agent wins take longer than losses")
     
     print(f"\n{'='*60}\n")
 
@@ -269,15 +269,12 @@ def save_results_to_file(stats, save_path):
 
 
 def main(args):
-    # Device setup
     device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
     print(f"Using device: {device}")
     
-    # Load environment
     env = ultimatetictactoe.env()
     print("Environment created.")
     
-    # Load agent
     model_path = Path(args.model_path)
     if not model_path.exists():
         raise FileNotFoundError(f"Model not found: {model_path}")
@@ -293,62 +290,34 @@ def main(args):
     agent.load(str(model_path))
     print("✓ Model loaded successfully")
     
-    # Run evaluation
     stats = evaluate_agent_detailed(
         env=env,
         agent=agent,
         num_games=args.num_games,
         verbose=args.verbose
     )
-    
-    # Print results
+
     print_evaluation_summary(stats, verbose=args.verbose)
     
-    # Save results
     if args.save_results:
         save_path = model_path.parent / f"evaluation_results_{args.num_games}games.txt"
         save_results_to_file(stats, save_path)
     
-    # Return stats for programmatic use
     return stats
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate trained MinMaxQ agent")
     
-    parser.add_argument(
-        '--model_path',
-        type=str,
-        required=True,
-        help='Path to trained model (e.g., agent1.pt)'
-    )
+    parser.add_argument('--model_path', type=str, required=True, help='Path to trained model (e.g., agent1.pt)')
     
-    parser.add_argument(
-        '--num_games',
-        type=int,
-        default=100,
-        help='Number of evaluation games (default: 100)'
-    )
+    parser.add_argument('--num_games', type=int, default=100, help='Number of evaluation games (default: 100)')
     
-    parser.add_argument(
-        '--cpu',
-        action='store_true',
-        help='Force CPU usage'
-    )
+    parser.add_argument('--cpu', action='store_true', help='Force CPU usage')
     
-    parser.add_argument(
-        '--save_results',
-        action='store_true',
-        default=True,
-        help='Save results to text file (default: True)'
-    )
+    parser.add_argument('--save_results', action='store_true', default=True, help='Save results to text file (default: True)')
     
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        default=True,
-        help='Print detailed progress (default: True)'
-    )
+    parser.add_argument('--verbose', action='store_true', default=True, help='Print detailed progress (default: True)')
     
     args = parser.parse_args()
     

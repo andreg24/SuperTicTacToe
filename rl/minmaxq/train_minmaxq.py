@@ -187,7 +187,7 @@ def main(args):
 		plot_path = Path(args.save_path) / "training_stats_enhanced.png" if args.save_path else None
 		plot_enhanced_stats(stats, save_path=plot_path)
 		
-		# Stampa summary delle metriche
+		# Metrics' summary 
 		print("\n" + "="*70)
 		print("METRICS SUMMARY")
 		print("="*70)
