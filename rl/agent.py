@@ -66,7 +66,7 @@ class Trajectory:
     def _apply_transformations(self, transformation):
         self.env.apply_transformation(transformation)
 
-    def compute(self, burnout_turn=0, transformation=None, transformation_turn=0, max_turn=None, reset=True):
+    def compute(self, temperature=1.0, burnout_turn=0, transformation=None, transformation_turn=0, max_turn=None, reset=True):
         assert burnout_turn % 2 == 0, "burnout turn must be even number"
         assert transformation_turn % 2 == 0, "transformation turn must be even_number"
         
@@ -103,16 +103,17 @@ class Trajectory:
             else:
                 if agent == "player_1":
                     if self.enable_transform:
-                        output = self.agent_1.pick_action(state, rotation, reflection)
+                        output = self.agent_1.pick_action(state, rotation, reflection, temperature=temperature)
                     else:
-                        output = self.agent_1.pick_action(state, None, None)
+                        output = self.agent_1.pick_action(state, None, None, temperature=temperature)
                 else:
                     if self.enable_transform:
-                        output = self.agent_2.pick_action(state, rotation, reflection)
+                        output = self.agent_2.pick_action(state, rotation, reflection, temperature=temperature)
                     else:
-                        output = self.agent_2.pick_action(state, None, None)
+                        output = self.agent_2.pick_action(state, None, None, temperature=temperature)
 
                 action = output["action"]
+                # print(f"agent {agent} playing action {action}")
                 if "log_prob" in output.keys():
                     log_prob = output["log_prob"]
 
@@ -364,7 +365,7 @@ class BaseAgent(ABC):
         self.name = name
 
     @abstractmethod
-    def pick_action(self, state: dict) -> dict:
+    def pick_action(self, state: dict, **kwargs) -> dict:
         """Takes in input a dictionary and outputs a dictionary with required key 'action'"""
         pass
 
@@ -483,7 +484,7 @@ class NeuralAgent(BaseAgent):
         self.device = device if device is not None else torch.device("cpu")
         self.mode = mode
 
-    def pick_action(self, state: torch.Tensor, rotation: Optional[Rotation] = None, reflection: Optional[Reflection] = None):
+    def pick_action(self, state: torch.Tensor, rotation: Optional[Rotation] = None, reflection: Optional[Reflection] = None, temperature: float = 1.0):
         """
         Obs is a (B, 3, 9, 9) tensor, where
         the first two channels are the players moves on the board
@@ -518,6 +519,9 @@ class NeuralAgent(BaseAgent):
 
         mask_orig = state_tensor[:, 2].bool().reshape(probs.size(0), -1)
         assert (probs[~mask_orig] == 0).all(), "inverse-transform misaligned with original mask"
+
+        if temperature != 1.0:
+          probs = torch.softmax(probs * temperature, dim=-1)
 
         dist = torch.distributions.Categorical(probs)
         if self.mode == 'sample':
@@ -554,10 +558,13 @@ class AlphaZeroAgent(BaseAgent):
 		self.mcts = MCTS(env, n_searches=n_searches)
 		self.player = player
 
-	def pick_action(self, state, *args):
+	def pick_action(self, state, *args, temperature=1.0):
 		board = self.env.board
 		root, action_probs = self.mcts.run(self.model, self.player, board)
-		action = np.argmax(action_probs)
+		# action_probs = torch.softmax(torch.tensor(action_probs) * temperature, dim=-1)
+		# action = np.argmax(action_probs)
+		# action = np.random.choice(np.array([i for i in range(81)]), size=1, p=action_probs)
+		action = np.random.choice(np.array([i for i in range(81)]), size=1, p=action_probs)
 		self.env.reset(options={
 			"board": board,
 			"next_player": self.player
@@ -565,7 +572,7 @@ class AlphaZeroAgent(BaseAgent):
 		return dict(action=action)
 
 
-def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, enable_swap=True, verbose=True):
+def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, temperature: float = 1.0, enable_swap=True, verbose=True):
     """Returns stats for n games played between the two agents"""
     agent1.eval()
     agent2.eval()
@@ -587,7 +594,8 @@ def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, enable_swap=
             print(f"Game {i+1}/{n}")
         if enable_swap and i > 0:
             trajectory.swap_players()
-        trajectory.compute()
+        # print(f"Playing match {i+1}/{n+1}")
+        trajectory.compute(temperature=temperature)
         t = trajectory.trajectory
         if not enable_swap or i % 2 == 0:
             reward = t["player_1"]["rewards"][-1]
@@ -625,18 +633,19 @@ def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, enable_swap=
         "game_turns": game_turns,
     }
 
-def _compute_game_func(env_fn, agent1_fn, agent2_fn, enable_swap=True, verbose=True):
+def _compute_game_func(env_fn, agent1_fn, agent2_fn, temperature, enable_swap=True, verbose=True):
 	env = cloudpickle.loads(env_fn)()
 	agent1 = cloudpickle.loads(agent1_fn)(env)
 	agent2 = cloudpickle.loads(agent2_fn)(env)
-	return compute_games(env, agent1, agent2, 1, enable_swap=enable_swap, verbose=verbose)
+	return compute_games(env, agent1, agent2, 1, temperature=temperature, enable_swap=enable_swap, verbose=verbose)
 
-def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, enable_swap=True, verbose=True):
+def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, temperature=1.0, enable_swap=True, verbose=True):
 	with mp.Pool(processes=n_processes) as pool:
 		results = pool.starmap(_compute_game_func, [(
 			cloudpickle.dumps(env_fn),
 			cloudpickle.dumps(agent1_fn),
 			cloudpickle.dumps(agent2_fn),
+			temperature,
 			enable_swap,
 			False
 		) for _ in range(n_games)])
@@ -644,15 +653,18 @@ def async_compute_games(env_fn, agent1_fn, agent2_fn, n_games, n_processes, enab
 		"results": [0.0, 0.0, 0.0],
 		"rewards": [],
 		"rewards_count": [],
-		"game_turns": []
+		"game_turns": [],
+		"average": []
 	}
 	for result in results:
 		stats["results"] = [(o1 * len(results) + o2) / len(results)  for o1, o2 in zip(stats["results"], result["results"])]
 		stats["rewards"].extend(result["rewards"])
 		stats["game_turns"].extend(result["game_turns"])
+		stats["average"].append(result["average"])
 
 	rewards, counts = np.unique(stats["rewards"], return_counts=True)
 	stats["rewards_count"] = {
 		r: c for r, c in zip(rewards, counts)
 	}
+	stats["average"] = np.array(stats["average"]).mean()
 	return stats
