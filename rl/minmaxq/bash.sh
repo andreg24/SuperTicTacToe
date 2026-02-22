@@ -101,54 +101,19 @@ echo "Starting training suite at $(date)"
 
 # echo "Exp 6 done at $(date)"
 
-# python train_minmaxq.py \
-#     --episodes 50000 \
-#     --epsilon_end 0.02 \
-#     --epsilon_decay 0.99998 \
-#     --lr 0.00025 \
-#     --batch_size 256 \
-#     --fixed_opponent \
-#     --fixed_phase_episodes 3000 \
-#     --target_update_freq 1000 \
-#     --eval_freq 1000 \
-#     --save_path ./weights_combo_optimized_similarity_try \
-#     --plot \
-#     2>&1 | tee stdout_combo_optimized.txt
+python train_minmaxq.py \
+    --episodes 50000 \
+    --epsilon_end 0.02 \
+    --epsilon_decay 0.99998 \
+    --lr 0.00025 \
+    --batch_size 256 \
+    --fixed_opponent \
+    --fixed_phase_episodes 3000 \
+    --target_update_freq 1000 \
+    --eval_freq 1000 \
+    --save_path ./weights_combo_optimized_similarity_try \
+    --plot \
+    2>&1 | tee stdout_combo_optimized.txt
 
 # echo "ALL DONE at $(date)"
 
-# for seed in 42 123 456 789 999; do
-#     python train_minmaxq.py \
-#         --episodes 50000 \
-#         --epsilon_end 0.02 \
-#         --epsilon_decay 0.99998 \
-#         --lr 0.00025 \
-#         --batch_size 256 \
-#         --fixed_opponent \
-#         --fixed_phase_episodes 3000 \
-#         --target_update_freq 1000 \
-#         --eval_freq 1000 \
-#         --save_path ./weights_seed_${seed} \
-#         --plot \
-#         --seed ${seed}  # Aggiungi seed al tuo script
-#         2>&1 | tee stdout_run_${seed}.txt 
-# done
-# Poi scegli il best model
-
-for i in 1 2 3; do
-    python train_minmaxq.py \
-        --episodes 50000 \
-        --epsilon_end 0.02 \
-        --epsilon_decay 0.99998 \
-        --lr 0.00025 \
-        --batch_size 256 \
-        --fixed_opponent \
-        --fixed_phase_episodes 3000 \
-        --target_update_freq 1000 \
-        --eval_freq 1000 \
-        --save_path ./weights_run_${i} \
-        --plot \
-        2>&1 | tee stdout_run_${i}.txt 
-done
-
-# sudo shutdown -h now

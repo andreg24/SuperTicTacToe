@@ -11,6 +11,7 @@ def mask_invalid_actions(env, priors_arr):
 	valid_moves = env.action_mask(env.agent_selection)
 	priors = priors_arr * valid_moves
 	priors /= np.sum(priors)
+	# priors[~valid_moves] = float("-inf")
 	return priors
 
 def get_actions_value_prediction(env, model, apply_mask=True):
@@ -66,7 +67,7 @@ class Node:
 
 
 class MCTS:
-	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128, dirichlet_eps: float = 0.25, dirichlet_alpha: float = 0.05):
+	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128, dirichlet_eps: float = 0, dirichlet_alpha: float = 0.05):
 		self.env = env
 		self.env.reset()
 		self.n_searches = n_searches

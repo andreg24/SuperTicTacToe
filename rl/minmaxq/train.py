@@ -263,7 +263,7 @@ def train_minmaxq(env, agent1: MinMaxQAgent, agent2: MinMaxQAgent, num_episodes:
 				# Clear learner's buffer at phase start
 				if episode % fixed_phase_episodes == 0:
 					buffer_learner.clear()
-					print(f"\n🔄 Cleared learner's replay buffer for phase starting at episode {episode}")
+					print(f"\n Cleared learner's replay buffer for phase starting at episode {episode}")
 		else:
 				if enable_swap and episode % 2 == 0:
 					agent1, agent2 = agent2, agent1
@@ -336,10 +336,10 @@ def train_minmaxq(env, agent1: MinMaxQAgent, agent2: MinMaxQAgent, num_episodes:
 			torch.save(learner.q_network.state_dict(), checkpoint_path)
 			if learner_is_agent1:
 				pool1.add(checkpoint_path)
-				print(f"\n📦 Added Agent1 checkpoint (ep {episode+1}) to pool (latest is now ep {episode+1})")
+				print(f"\nAdded Agent1 checkpoint (ep {episode+1}) to pool (latest is now ep {episode+1})")
 			else:
 				pool2.add(checkpoint_path)
-				print(f"\n📦 Added Agent2 checkpoint (ep {episode+1}) to pool (latest is now ep {episode+1})")
+				print(f"\nAdded Agent2 checkpoint (ep {episode+1}) to pool (latest is now ep {episode+1})")
 
 		# Self‑play evaluation
 		if episode % eval_freq == 0 and episode > 0:

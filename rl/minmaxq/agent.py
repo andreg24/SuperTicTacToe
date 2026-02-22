@@ -97,7 +97,7 @@ class MinMaxQAgent(BaseAgent):
 		self.mode = 'eval'
 		self.q_network.eval()
 
-	def pick_action(self, state: dict) -> dict:
+	def pick_action(self, state: dict, *args, temperature: float = 1.0) -> dict:
 		state_tensor = state_to_tensor(state, self.device)
 		mask = torch.tensor(state['action_mask'], dtype=torch.bool, device=self.device)
 
@@ -113,7 +113,9 @@ class MinMaxQAgent(BaseAgent):
 		with torch.no_grad():
 			q = self.q_network(state_tensor).squeeze(0)
 			q[~mask] = -float('inf')
-			action = q.argmax().item()
+			q = torch.softmax(q, dim=-1)
+			# action = q.argmax().item()
+			action = np.random.choice(np.array([i for i in range(81)]), size=1, p=q.numpy())
 		return {'action': action, 'epsilon': epsilon}
 
 	def update(self, batch):
@@ -127,13 +129,17 @@ class MinMaxQAgent(BaseAgent):
 
 		q_all = self.q_network(states)
 		q_sa = q_all.gather(1, actions.unsqueeze(1)).squeeze(1)
-
+		
+		# MinMax Policy implementation
 		with torch.no_grad():
 			if self.use_double_dqn:
+				# Chose online actions
 				q_next_online = self.q_network(next_states)
-				q_next_online[~next_masks] = -float('inf')
+				q_next_online[~next_masks] = -float('inf') # Taking away the illigal actions
+
+				# Take the best action
 				best_actions = q_next_online.argmax(dim=1)
-				q_next_target = self.target_network(next_states)
+				q_next_target = self.target_network(next_states) # Evaluate the best action
 				q_next = q_next_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
 			else:
 				q_next = self.target_network(next_states)
