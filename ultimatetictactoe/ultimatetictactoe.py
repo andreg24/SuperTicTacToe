@@ -307,4 +307,4 @@ class raw_env(AECEnv, EzPickle):
 
 
     def save_snapshot(self, path: str = "game.png", dir: str = "img"):
-        pygame.image.save(self.screen, dir + path)
+        pygame.image.save(self.screen, dir + "/" + path)
