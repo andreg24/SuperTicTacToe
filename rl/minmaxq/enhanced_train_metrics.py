@@ -114,7 +114,7 @@ def compute_action_distribution(actions, action_mask):
 	"""
 	stats = {}
 	
-	# Center position (40)
+	# Center position
 	stats['center_plays'] = (actions == 40).float().mean().item()
 	
 	# Corner positions (0, 2, 6, 8, 18, 20, 24, 26, ...)
@@ -125,7 +125,7 @@ def compute_action_distribution(actions, action_mask):
 	stats['corner_plays'] = is_corner.float().mean().item()
 	
 	# Edge positions
-	edges = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25, ...]  # etc
+	edges = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25, ...]  
 	# Simplified: not corner, not center
 	stats['edge_plays'] = 1.0 - stats['center_plays'] - stats['corner_plays']
 	
@@ -492,7 +492,3 @@ def plot_enhanced_stats(stats, save_path=None):
 
 if __name__ == "__main__":
 	print("Metrics enhancement module loaded successfully!")
-	print("\nTo use:")
-	print("1. Import: from enhanced_train_metrics import enhanced_train_minmaxq, plot_enhanced_stats")
-	print("2. Replace train_minmaxq() with enhanced_train_minmaxq()")
-	print("3. Use plot_enhanced_stats(stats) instead of plot_training_stats()")

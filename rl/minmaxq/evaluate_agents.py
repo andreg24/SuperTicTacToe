@@ -64,7 +64,6 @@ def main(args):
 		print(f"  {agents[1].name} wins: {results['agent2_wins']:.1f}%")
 		print(f"  Draws: {results['draws']:.1f}%")
 	else:
-		# Round robin
 		print("\nRunning round-robin tournament...")
 		n = len(agents)
 		matrix = pd.DataFrame(index=[a.name for a in agents], columns=[a.name for a in agents])
