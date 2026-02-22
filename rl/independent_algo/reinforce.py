@@ -67,11 +67,15 @@ def reinforce(
     weights_name: Optional[str] = "",
     device: torch.device = torch.device("cpu")
 ) -> None:
+    if (num_episodes-1)%100 != 0:
+        num_episodes = num_episodes//100 * 100 + 101
     
     agent_1_losses = []
     agent_2_losses = []
 
-    if weights_path is not None:
+    starting_epoch_name = 0
+    if weights_path != "":
+        starting_epoch_name = int(weights_name.split("_")[1].split(".")[0])
         agent_1.policy_net.load_state_dict(torch.load(weights_path + "/agent_1/" + weights_name))
         agent_2.policy_net.load_state_dict(torch.load(weights_path + "/agent_2/" + weights_name))
     
@@ -176,9 +180,9 @@ def reinforce(
             if ep != 0 and ep%checkpoint_rate == 0 or ep==num_episodes-1:
                 # save weights
                 if update1:
-                    torch.save(agent_1.policy_net.state_dict(), checkpoint_folder+f"/agent_1/model_{ep}.pt")
+                    torch.save(agent_1.policy_net.state_dict(), checkpoint_folder+f"/agent_1/model_{ep+starting_epoch_name}.pt")
                 if update2:
-                    torch.save(agent_2.policy_net.state_dict(), checkpoint_folder+f"/agent_2/model_{ep}.pt")
+                    torch.save(agent_2.policy_net.state_dict(), checkpoint_folder+f"/agent_2/model_{ep+starting_epoch_name}.pt")
         
         if validation_rate is not None:
             if ep != 0 and ep%validation_rate == 0 or ep == num_episodes-1:
@@ -187,7 +191,7 @@ def reinforce(
                 res_2r.append(compute_games(env, agent1=agent_2, agent2=ar, n=200, verbose=False))
             
             res = (agent_1_losses, agent_2_losses, res_12, res_1r, res_2r)
-            with open(checkpoint_folder+'/es.pkl', 'wb') as file:
+            with open(checkpoint_folder+'/res.pkl', 'wb') as file:
                 pickle.dump(res, file)
 
     return agent_1_losses, agent_2_losses, res_12, res_1r, res_2r
