@@ -97,7 +97,7 @@ class MinMaxQAgent(BaseAgent):
 		self.mode = 'eval'
 		self.q_network.eval()
 
-	def pick_action(self, state: dict) -> dict:
+	def pick_action(self, state: dict, *args, temperature: float = 1.0) -> dict:
 		state_tensor = state_to_tensor(state, self.device)
 		mask = torch.tensor(state['action_mask'], dtype=torch.bool, device=self.device)
 
@@ -113,7 +113,9 @@ class MinMaxQAgent(BaseAgent):
 		with torch.no_grad():
 			q = self.q_network(state_tensor).squeeze(0)
 			q[~mask] = -float('inf')
-			action = q.argmax().item()
+			q = torch.softmax(q, dim=-1)
+			# action = q.argmax().item()
+			action = np.random.choice(np.array([i for i in range(81)]), size=1, p=q.numpy())
 		return {'action': action, 'epsilon': epsilon}
 
 	def update(self, batch):

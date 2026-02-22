@@ -22,6 +22,7 @@ if __name__ == "__main__":
 	parser.add_argument("--options2", "-o2", action="store", required=False, default="")
 	parser.add_argument("--n_matches", "-m", action="store", type=int, default=128)
 	parser.add_argument("--n_processes", "-p", action="store", type=int, default=1)
+	parser.add_argument("--temperature", "-t", action="store", type=float, default=1.0)
 	parser.add_argument("--device", "-d", action="store", default="cpu")
 	args = parser.parse_args()
 
@@ -50,16 +51,17 @@ if __name__ == "__main__":
 				return AlphaZeroAgent(f"player_{i}", env, model, -1 if i == 1 else 1, n_searches=n_searches)
 			agent_fn = f
 		elif agent_type == "ipg":
-			def load_agent(env):
+			def load_agent(env, i=i, checkpoint=all_checkpoints[i]):
 				a = NeuralAgent(f"player_{i}")
-				a.load(all_checkpoints[i])
+				a.load(checkpoint)
 				a.disable_epsilon(True)
 				return a
 			agent_fn = load_agent
 		elif agent_type == "mmq":
-			def load_agent(env):
+			def load_agent(env, i=i, checkpoint=all_checkpoints[i]):
 				a = MinMaxQAgent(f"player_{i}", i + 1)
-				a.load(all_checkpoints[i])
+				a.load(checkpoint)
+				return a
 			agent_fn = load_agent
 		elif agent_type == "rnd":
 			agent_fn = lambda env: RandomAgent(f"player_{i}", action_mask_enabled=True)
@@ -74,6 +76,7 @@ if __name__ == "__main__":
 		agent2_fn=agents[1],
 		n_games=args.n_matches,
 		n_processes=args.n_processes,
+		temperature=args.temperature,
 		enable_swap=False,
 		verbose=False
 	)

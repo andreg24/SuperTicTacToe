@@ -73,7 +73,7 @@ class MLP2(nn.Module):
 
 		self.to(device)
 
-	def forward(self, x):
+	def forward(self, x, temperature=1.0):
 		x = x.reshape((-1, self.sub_board_size, self.sub_board_size))
 		x = self.sub(x)
 		x = x.reshape((-1, self.sub_board_size * 64))
@@ -83,16 +83,17 @@ class MLP2(nn.Module):
 		action_logits = self.action_head(x)
 		value_logits = self.value_head(x)
 
+		action_logits *= temperature
 		return F.softmax(action_logits, dim=-1), torch.tanh(value_logits)
 
-	def predict(self, board):
+	def predict(self, board, temperature=1.0):
 		board = torch.FloatTensor(
 			board.astype(np.float32)
 		).to(self.device).view(1, self.board_size)
 		self.eval()
 		
 		with torch.no_grad():
-			pi, v = self.forward(board)
+			pi, v = self.forward(board, temperature=temperature)
 
 		return pi.data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 

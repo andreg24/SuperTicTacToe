@@ -11,6 +11,7 @@ def mask_invalid_actions(env, priors_arr):
 	valid_moves = env.action_mask(env.agent_selection)
 	priors = priors_arr * valid_moves
 	priors /= np.sum(priors)
+	# priors[~valid_moves] = float("-inf")
 	return priors
 
 def get_actions_value_prediction(env, model, apply_mask=True):
