@@ -66,7 +66,7 @@ class Node:
 
 
 class MCTS:
-	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128, dirichlet_eps: float = 0.25, dirichlet_alpha: float = 0.05):
+	def __init__(self, env: ultimatetictactoe.raw_env, n_searches: int = 128, dirichlet_eps: float = 0, dirichlet_alpha: float = 0.05):
 		self.env = env
 		self.env.reset()
 		self.n_searches = n_searches

@@ -21,7 +21,7 @@ from rl.alphazero.utils import get_board_perspective
 from rl.agent import compute_games, async_compute_games
 
 
-def episode(env: ultimatetictactoe.env, model, n_searches):
+def episode(env: ultimatetictactoe.env, model, n_searches, augment_samples=False):
 	samples = []
 	current_player = 1
 	board = None
@@ -44,37 +44,44 @@ def episode(env: ultimatetictactoe.env, model, n_searches):
 
 		if reward != 0 or termination:
 			# print(f"Reward! Player {current_player} has won!")
-			return [(
+			out_samples = [(
 				hist_state,
 				hist_action_probs,
 				reward * ((-1) ** (hist_player != current_player))
 			) for hist_state, hist_player, hist_action_probs in samples]
+			if augment_samples:
+				out_samples += [(
+					hist_state * 1,
+					hist_action_probs,
+					reward * ((-1) ** (hist_player == current_player))
+				) for hist_state, hist_player, hist_action_probs in samples]
+			return out_samples
 		
 		current_player *= -1
 		board = env.board
 		# print(f"No reward, doing another search starting from root -- {action} --> {node}")
 
-def episode_async(env_fn, model, n_searches):
+def episode_async(env_fn, model, n_searches, augment_samples=False):
 	warnings.filterwarnings("ignore", category=UserWarning)
 	env = cloudpickle.loads(env_fn)()
 	model = cloudpickle.loads(model)
-	return episode(env, model, n_searches)
+	return episode(env, model, n_searches, augment_samples)
 
-def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_searches, batch_size):
+def _train(env: ultimatetictactoe.env, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, augment_samples=False):
 	for i in range(1, n_iters + 1):
 		print(f"Iteration {i}/{n_iters}")
 
 		samples = []
 		for j in range(1, n_episodes + 1):
 			print(f"Episode {j}/{n_episodes}")
-			samples.extend(episode(env, model, n_searches))
+			samples.extend(episode(env, model, n_searches, augment_samples))
 		
 		random.shuffle(samples)
 		print("All episodes executed. Training...")
 		train_model(model, samples, n_epochs, batch_size)
 		print()
 
-def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, n_processes=1, save_model=False, save_intermediate=False):
+def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searches, batch_size, augment_samples=False, n_processes=1, save_model=False, save_intermediate=False):
 	stats = []
 	best = float("inf"), float("inf")
 	timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -86,7 +93,8 @@ def _train_async(env_fn: callable, model, n_iters, n_episodes, n_epochs, n_searc
 				(
 					cloudpickle.dumps(env_fn),
 					cloudpickle.dumps(model),
-					n_searches
+					n_searches,
+					augment_samples
 				) for _ in range(n_episodes)
 			])
 			
@@ -215,6 +223,7 @@ if __name__ == "__main__":
 	parser.add_argument("--n_epochs", "-e", action="store", type=int, default=0)
 	parser.add_argument("--n_searches", "-t", action="store", type=int, default=0)
 	parser.add_argument("--n_matches", "-m", action="store", type=int, default=0)
+	parser.add_argument("--augment_samples", "-a", action="store_true", default=False)
 	parser.add_argument("--n_processes", "-p", action="store", type=int, default=1)
 	parser.add_argument("--batch", "-b", action="store", default=32, type=int)
 	parser.add_argument("--render", "-r", action="store", choices=["tui", "human"], default=None)
@@ -248,15 +257,6 @@ if __name__ == "__main__":
 	else:
 		sys.exit(f"Available models: mlp, resnet")
 	if args.train:
-		# _train(
-		# 	env=env,
-		# 	model=model,
-		# 	n_iters=args.n_iters,
-		# 	n_episodes=args.n_episodes,
-		# 	n_epochs=args.n_epochs,
-		# 	n_searches=args.n_searches,
-		# 	batch_size=args.batch
-		# )
 		stats = _train_async(
 			env_fn=lambda: ultimatetictactoe.env(render_mode=args.render),
 			model=model,
@@ -265,6 +265,7 @@ if __name__ == "__main__":
 			n_epochs=args.n_epochs,
 			n_searches=args.n_searches,
 			batch_size=args.batch,
+			augment_samples=args.augment_samples,
 			n_processes=args.n_processes,
 			save_model=args.save,
 			save_intermediate=args.save_intermediate
@@ -273,13 +274,6 @@ if __name__ == "__main__":
 			f.write("loss_pi,loss_v\n")
 			for line in stats:
 				f.write(f"{line[0]},{line[1]}\n")
-		# torch.save(model.state_dict(), args.checkpoint)
 	elif args.eval:
 		model.load_state_dict(torch.load(args.checkpoint, weights_only=True))
-		# wins, total = 0, 0
-		# for _ in range(args.n_matches):
-		# 	if _eval(env, model) > 0:
-		# 		wins += 1
-		# 	total += 1
 		_eval(env, model, args.n_matches, args.n_searches, n_processes=args.n_processes)
-		# print(f"Stats: model won {wins} out of {total} matches ({(wins / total) * 100}%)")

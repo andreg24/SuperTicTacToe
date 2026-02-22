@@ -624,6 +624,7 @@ def compute_games(env, agent1: NeuralAgent, agent2: NeuralAgent, n, enable_swap=
     return {
         "results": results * 100 / n,
         "rewards": rewards,
+				"average": np.array(rewards).mean(),
         "rewards_count": rewards_count,
         "game_turns": game_turns,
     }

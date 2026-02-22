@@ -5,3 +5,4 @@ scipy
 gymnasium
 pettingzoo
 tqdm
+streamlit
