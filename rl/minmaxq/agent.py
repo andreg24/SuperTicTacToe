@@ -119,6 +119,8 @@ class MinMaxQAgent(BaseAgent):
 		return {'action': action, 'epsilon': epsilon}
 
 	def update(self, batch):
+		# MinMax Policy implementation
+		# Unpack batch
 		states = batch.state.to(self.device)
 		actions = batch.action.to(self.device).long()
 		rewards = batch.reward.to(self.device).float()
@@ -126,22 +128,23 @@ class MinMaxQAgent(BaseAgent):
 		dones = batch.done.to(self.device).float()
 		next_masks = batch.next_action_mask.to(self.device).bool()
 		next_turns = batch.next_turn.to(self.device).long()
-
-		q_all = self.q_network(states)
+		
+		# Q-value for taken action
+		q_all = self.q_network(states) 
 		q_sa = q_all.gather(1, actions.unsqueeze(1)).squeeze(1)
 		
-		# MinMax Policy implementation
 		with torch.no_grad():
 			if self.use_double_dqn:
-				# Chose online actions
+				# Online network selects best action
 				q_next_online = self.q_network(next_states)
 				q_next_online[~next_masks] = -float('inf') # Taking away the illigal actions
 
-				# Take the best action
+				# Target network evaluates the best action (reduces overestimation bias)
 				best_actions = q_next_online.argmax(dim=1)
 				q_next_target = self.target_network(next_states) # Evaluate the best action
 				q_next = q_next_target.gather(1, best_actions.unsqueeze(1)).squeeze(1)
 			else:
+
 				q_next = self.target_network(next_states)
 				q_next[~next_masks] = -float('inf')
 				q_next = q_next.max(dim=1)[0]
@@ -153,14 +156,14 @@ class MinMaxQAgent(BaseAgent):
 					V[i] = 0.0
 				else:
 					if next_turns[i] == current_turn[i]:
-						V[i] = q_next[i]
+						V[i] = q_next[i] # It's our turn (MAX)
 					else:
-						V[i] = -q_next[i]
+						V[i] = -q_next[i] # Opponent's turn (MIN)
 
 			target = rewards + self.gamma * V * (1 - dones)
-
+		
+		# MSE loss, backprop with gradient clipping
 		loss = F.mse_loss(q_sa, target)
-
 		self.optimizer.zero_grad()
 		loss.backward()
 		torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), max_norm=1.0)
