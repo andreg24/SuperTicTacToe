@@ -44,7 +44,7 @@ def relative_to_absolute(super_pos, sub_pos):
     square_pos = coordinates_to_pos((square_row, square_col), 9)
     return square_pos
 
-# torch batches
+# deal with torch batches
 
 def split_subboards(t: torch.Tensor):
     """
@@ -67,6 +67,8 @@ def merge_subboards(t):
     y = y.permute(0, 3, 1, 4, 2, 5)       # (B, C, sb_r, cell_r, sb_c, cell_c)
     y = y.reshape(B, C, 9, 9)
     return y
+
+# transformations
 
 class Rotation:
 
