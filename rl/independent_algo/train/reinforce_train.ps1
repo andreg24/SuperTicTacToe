@@ -85,7 +85,7 @@ $python = "..\venv\Scripts\python.exe"
 # fast high
 # -----------------
 & $python reinforce_training.py `
-  --num_episodes 4100 `
+  --num_episodes 24000 `
   --enable_swap `
   --enable_transform `
   --px 0 `
@@ -95,15 +95,15 @@ $python = "..\venv\Scripts\python.exe"
   --experiment_name fast_l_high_e `
   --eps 0.3 `
   --a1_learning_power 0.0 `
-  --a1_learning_const 1e-3 `
-  --a1_exploration_power 0.0 `
-  --a1_exploration_const 0.3 `
+  --a1_learning_const 1e-6 `
+  --a1_exploration_power 1.0 `
+  --a1_exploration_const 1.0 `
   --a2_learning_power 0.0 `
-  --a2_learning_const 1e-3 `
-  --a2_exploration_power 0.0 `
-  --a2_exploration_const 0.3 `
-  --weights_path "rl/independent_algo/logs/checkpoints/fast_l_high_e/2026_02_22_15_08_30" `
-  --weights_name "model_36100.pt" `
+  --a2_learning_const 1e-6 `
+  --a2_exploration_power 1.0 `
+  --a2_exploration_const 1.0 `
+  --weights_path "rl/independent_algo/logs/checkpoints/slow_l_high_e/2026_02_21_13_04_08" `
+  --weights_name "model_17100.pt" `
   --device cpu
 
 # # -----------------
